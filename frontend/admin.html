@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — Coherence Diagnostic</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 60 35 Q 100 65, 60 100 Q 20 135, 60 165' fill='none' stroke='%233b82a0' stroke-width='18' stroke-linecap='round'/%3E%3Cpath d='M 100 35 Q 60 65, 100 100 Q 140 135, 100 165' fill='none' stroke='%235fb3b3' stroke-width='16' stroke-linecap='round'/%3E%3Cpath d='M 140 35 Q 100 65, 140 100 Q 180 135, 140 165' fill='none' stroke='%237a8fa6' stroke-width='14' stroke-linecap='round' opacity='0.6'/%3E%3C/svg%3E">
+
+    <style>
+        :root {
+            --color-bg-dark: #1a2332;
+            --color-bg-light: #f0f4f8;
+            --color-bg-card: #232d3f;
+            --color-text-on-dark: #e8edf3;
+            --color-text-on-light: #1a2332;
+            --color-accent: #3b82a0;
+            --color-muted-on-dark: #7a8fa6;
+            --color-highlight: #5fb3b3;
+            --color-border-dark: #2d3a4f;
+            --color-solid: #5fb3b3;
+            --color-attention: #c75b5b;
+
+            --font-display: 'Fraunces', serif;
+            --font-body: 'Source Serif 4', serif;
+            --font-ui: 'IBM Plex Sans', sans-serif;
+            --font-mono: 'IBM Plex Mono', monospace;
+
+            --content-width: 800px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            font-size: 18px;
+            line-height: 1.7;
+            color: var(--color-text-on-dark);
+            background: var(--color-bg-dark);
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 32px 24px;
+            border-bottom: 1px solid var(--color-border-dark);
+        }
+
+        header .container {
+            max-width: var(--content-width);
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .header-logo svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .header-logo span {
+            font-family: var(--font-ui);
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            color: var(--color-muted-on-dark);
+        }
+
+        .header-back {
+            font-family: var(--font-ui);
+            font-size: 14px;
+            color: var(--color-accent);
+            text-decoration: none;
+        }
+
+        .header-back:hover {
+            text-decoration: underline;
+        }
+
+        main {
+            padding: 60px 24px 100px;
+        }
+
+        .container {
+            max-width: var(--content-width);
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 36px;
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+
+        .intro {
+            color: var(--color-muted-on-dark);
+            margin-bottom: 48px;
+        }
+
+        /* Login Form */
+        .login-section {
+            background: var(--color-bg-card);
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 32px;
+        }
+
+        .login-section.hidden {
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-family: var(--font-ui);
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--color-muted-on-dark);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            max-width: 300px;
+            padding: 12px 16px;
+            background: var(--color-bg-dark);
+            border: 1px solid var(--color-border-dark);
+            border-radius: 8px;
+            color: var(--color-text-on-dark);
+            font-family: var(--font-mono);
+            font-size: 16px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--color-accent);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: var(--color-accent);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-family: var(--font-ui);
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #2d6980;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--color-border-dark);
+            color: var(--color-muted-on-dark);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+            background: transparent;
+        }
+
+        /* Admin Panel */
+        .admin-panel {
+            display: none;
+        }
+
+        .admin-panel.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .stat-card {
+            background: var(--color-bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: 36px;
+            font-weight: 600;
+            color: var(--color-highlight);
+        }
+
+        .stat-label {
+            font-family: var(--font-ui);
+            font-size: 13px;
+            color: var(--color-muted-on-dark);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 48px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-family: var(--font-ui);
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--color-muted-on-dark);
+        }
+
+        /* Create User */
+        .create-user-form {
+            background: var(--color-bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .create-user-form .form-group {
+            margin-bottom: 0;
+        }
+
+        /* Users Table */
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--color-bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .users-table th,
+        .users-table td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--color-border-dark);
+        }
+
+        .users-table th {
+            font-family: var(--font-ui);
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--color-muted-on-dark);
+            background: var(--color-bg-dark);
+        }
+
+        .users-table td {
+            font-family: var(--font-mono);
+            font-size: 14px;
+        }
+
+        .users-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .users-table .password-cell {
+            color: var(--color-highlight);
+            cursor: pointer;
+        }
+
+        .users-table .password-cell:hover {
+            text-decoration: underline;
+        }
+
+        .usage-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .usage-bar-track {
+            width: 100px;
+            height: 8px;
+            background: var(--color-bg-dark);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .usage-bar-fill {
+            height: 100%;
+            background: var(--color-highlight);
+            transition: width 0.3s;
+        }
+
+        .usage-bar-fill.warning {
+            background: #e0a458;
+        }
+
+        .usage-bar-fill.depleted {
+            background: var(--color-attention);
+        }
+
+        /* Messages */
+        .message {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-family: var(--font-ui);
+            font-size: 14px;
+        }
+
+        .message.success {
+            background: rgba(95, 179, 179, 0.15);
+            color: var(--color-solid);
+            border: 1px solid var(--color-solid);
+        }
+
+        .message.error {
+            background: rgba(199, 91, 91, 0.15);
+            color: var(--color-attention);
+            border: 1px solid var(--color-attention);
+        }
+
+        .message.hidden {
+            display: none;
+        }
+
+        /* New Password Display */
+        .new-password-display {
+            background: var(--color-bg-dark);
+            border: 2px solid var(--color-highlight);
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .new-password-display.hidden {
+            display: none;
+        }
+
+        .new-password-label {
+            font-family: var(--font-ui);
+            font-size: 13px;
+            color: var(--color-muted-on-dark);
+            margin-bottom: 8px;
+        }
+
+        .new-password-value {
+            font-family: var(--font-mono);
+            font-size: 24px;
+            color: var(--color-highlight);
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        .copy-hint {
+            font-family: var(--font-ui);
+            font-size: 12px;
+            color: var(--color-muted-on-dark);
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 48px;
+            color: var(--color-muted-on-dark);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--color-border-dark);
+            border-top-color: var(--color-accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <a href="/" class="header-logo">
+                <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M 60 35 Q 100 65, 60 100 Q 20 135, 60 165" fill="none" stroke="#3b82a0" stroke-width="18" stroke-linecap="round"/>
+                    <path d="M 100 35 Q 60 65, 100 100 Q 140 135, 100 165" fill="none" stroke="#5fb3b3" stroke-width="16" stroke-linecap="round"/>
+                    <path d="M 140 35 Q 100 65, 140 100 Q 180 135, 140 165" fill="none" stroke="#7a8fa6" stroke-width="14" stroke-linecap="round" opacity="0.6"/>
+                </svg>
+                <span>ADMIN</span>
+            </a>
+            <a href="/" class="header-back">← Back to tool</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <h1>User Management</h1>
+            <p class="intro">Create access passwords and monitor usage.</p>
+
+            <!-- Login Section -->
+            <div class="login-section" id="loginSection">
+                <div class="form-group">
+                    <label class="form-label">Admin Password</label>
+                    <input type="password" class="form-input" id="adminPassword" placeholder="Enter admin password">
+                </div>
+                <button class="btn" onclick="login()">Login</button>
+                <div class="message error hidden" id="loginError"></div>
+            </div>
+
+            <!-- Admin Panel -->
+            <div class="admin-panel" id="adminPanel">
+                <div class="message hidden" id="statusMessage"></div>
+
+                <!-- Stats -->
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotalUsers">-</div>
+                        <div class="stat-label">Total Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statActiveUsers">-</div>
+                        <div class="stat-label">Active Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotalAnalyses">-</div>
+                        <div class="stat-label">Total Analyses</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTodaySlots">-</div>
+                        <div class="stat-label">Slots Today</div>
+                    </div>
+                </div>
+
+                <!-- Create User Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <span class="section-title">Create New User</span>
+                    </div>
+                    <div class="create-user-form">
+                        <div class="form-group">
+                            <label class="form-label">Recipient (optional)</label>
+                            <input type="text" class="form-input" id="newUserEmail" placeholder="Name or email for your records">
+                        </div>
+                        <button class="btn" onclick="createUser()">Create User</button>
+                    </div>
+                    <div class="new-password-display hidden" id="newPasswordDisplay">
+                        <div class="new-password-label">New user password (click to copy):</div>
+                        <div class="new-password-value" id="newPasswordValue" onclick="copyPassword()"></div>
+                        <div class="copy-hint">Send this password to the user</div>
+                    </div>
+                </div>
+
+                <!-- Users List -->
+                <div class="section">
+                    <div class="section-header">
+                        <span class="section-title">All Users</span>
+                        <button class="btn btn-secondary" onclick="refreshUsers()">Refresh</button>
+                    </div>
+                    <div id="usersTableContainer">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let adminPassword = '';
+
+        async function login() {
+            const password = document.getElementById('adminPassword').value;
+            const loginError = document.getElementById('loginError');
+
+            if (!password) {
+                loginError.textContent = 'Please enter the admin password';
+                loginError.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch('/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                if (response.ok) {
+                    adminPassword = password;
+                    document.getElementById('loginSection').classList.add('hidden');
+                    document.getElementById('adminPanel').classList.add('active');
+                    loadStats();
+                    loadUsers();
+                } else {
+                    loginError.textContent = 'Invalid admin password';
+                    loginError.classList.remove('hidden');
+                }
+            } catch (error) {
+                loginError.textContent = 'Connection error. Please try again.';
+                loginError.classList.remove('hidden');
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch(`/admin/stats?admin_password=${encodeURIComponent(adminPassword)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('statTotalUsers').textContent = data.totals.total_users;
+                    document.getElementById('statActiveUsers').textContent = data.totals.active_users;
+                    document.getElementById('statTotalAnalyses').textContent = data.totals.total_analyses;
+                    document.getElementById('statTodaySlots').textContent = `${data.daily.remaining_slots}/${data.totals.max_new_users_per_day}`;
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        async function loadUsers() {
+            const container = document.getElementById('usersTableContainer');
+
+            try {
+                const response = await fetch(`/admin/users?admin_password=${encodeURIComponent(adminPassword)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    renderUsersTable(data.users);
+                } else {
+                    container.innerHTML = '<p style="color: var(--color-attention);">Failed to load users</p>';
+                }
+            } catch (error) {
+                container.innerHTML = '<p style="color: var(--color-attention);">Connection error</p>';
+            }
+        }
+
+        function renderUsersTable(users) {
+            const container = document.getElementById('usersTableContainer');
+
+            if (users.length === 0) {
+                container.innerHTML = '<p style="color: var(--color-muted-on-dark);">No users created yet.</p>';
+                return;
+            }
+
+            const maxAnalyses = 10;
+            const rows = users.map(user => {
+                const usagePercent = (user.usage_count / maxAnalyses) * 100;
+                let barClass = '';
+                if (usagePercent >= 100) barClass = 'depleted';
+                else if (usagePercent >= 70) barClass = 'warning';
+
+                const createdDate = new Date(user.created_at).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                });
+
+                return `
+                    <tr>
+                        <td class="password-cell" onclick="copyToClipboard('${user.password}')" title="Click to copy">${user.password}</td>
+                        <td>${user.email || '—'}</td>
+                        <td>${createdDate}</td>
+                        <td>
+                            <div class="usage-bar">
+                                <div class="usage-bar-track">
+                                    <div class="usage-bar-fill ${barClass}" style="width: ${usagePercent}%"></div>
+                                </div>
+                                <span>${user.usage_count}/${maxAnalyses}</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Password</th>
+                            <th>Recipient</th>
+                            <th>Created</th>
+                            <th>Usage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function createUser() {
+            const email = document.getElementById('newUserEmail').value || null;
+            const statusMessage = document.getElementById('statusMessage');
+            const passwordDisplay = document.getElementById('newPasswordDisplay');
+
+            statusMessage.classList.add('hidden');
+            passwordDisplay.classList.add('hidden');
+
+            try {
+                const response = await fetch('/admin/create-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        admin_password: adminPassword,
+                        email: email
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('newPasswordValue').textContent = data.user.password;
+                    passwordDisplay.classList.remove('hidden');
+                    document.getElementById('newUserEmail').value = '';
+                    loadStats();
+                    loadUsers();
+                } else {
+                    statusMessage.textContent = data.detail || 'Failed to create user';
+                    statusMessage.className = 'message error';
+                    statusMessage.classList.remove('hidden');
+                }
+            } catch (error) {
+                statusMessage.textContent = 'Connection error. Please try again.';
+                statusMessage.className = 'message error';
+                statusMessage.classList.remove('hidden');
+            }
+        }
+
+        function copyPassword() {
+            const password = document.getElementById('newPasswordValue').textContent;
+            copyToClipboard(password);
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const statusMessage = document.getElementById('statusMessage');
+                statusMessage.textContent = `Password copied: ${text}`;
+                statusMessage.className = 'message success';
+                statusMessage.classList.remove('hidden');
+                setTimeout(() => statusMessage.classList.add('hidden'), 3000);
+            });
+        }
+
+        function refreshUsers() {
+            loadStats();
+            loadUsers();
+        }
+
+        // Allow Enter key to login
+        document.getElementById('adminPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') login();
+        });
+    </script>
+</body>
+</html>

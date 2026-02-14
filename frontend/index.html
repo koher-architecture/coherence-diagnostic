@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coherence Diagnostic — Koher</title>
+    <meta name="description" content="Analyse design concepts for coherence. See what's strong, thin, or unclear.">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://coherence.koher.app/">
+    <meta property="og:title" content="Coherence Diagnostic — Koher">
+    <meta property="og:description" content="Analyse design concepts for coherence. AI handles language. Code handles judgment.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+
+    <!-- Favicon - Teal theme -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 60 35 Q 100 65, 60 100 Q 20 135, 60 165' fill='none' stroke='%233b82a0' stroke-width='18' stroke-linecap='round'/%3E%3Cpath d='M 100 35 Q 60 65, 100 100 Q 140 135, 100 165' fill='none' stroke='%235fb3b3' stroke-width='16' stroke-linecap='round'/%3E%3Cpath d='M 140 35 Q 100 65, 140 100 Q 180 135, 140 165' fill='none' stroke='%237a8fa6' stroke-width='14' stroke-linecap='round' opacity='0.6'/%3E%3C/svg%3E">
+
+    <style>
+        :root {
+            /* Blues/Teals palette - analytical, distinct from Koher orange */
+            --color-bg-dark: #1a2332;
+            --color-bg-light: #f0f4f8;
+            --color-bg-card: #232d3f;
+            --color-text-on-dark: #e8edf3;
+            --color-text-on-light: #1a2332;
+            --color-accent: #3b82a0;
+            --color-muted-on-dark: #7a8fa6;
+            --color-muted-on-light: #5a6b7a;
+            --color-highlight: #5fb3b3;
+            --color-border-dark: #2d3a4f;
+            --color-border-light: #d1dce6;
+            --color-solid: #5fb3b3;
+            --color-examine: #e0a458;
+            --color-attention: #c75b5b;
+
+            --font-display: 'Fraunces', serif;
+            --font-body: 'Source Serif 4', serif;
+            --font-ui: 'IBM Plex Sans', sans-serif;
+            --font-mono: 'IBM Plex Mono', monospace;
+
+            --content-width: 720px;
+            --wide-width: 1200px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-body);
+            font-size: 18px;
+            line-height: 1.7;
+            color: var(--color-text-on-dark);
+            background: var(--color-bg-dark);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        header {
+            padding: 32px 24px;
+            border-bottom: 1px solid var(--color-border-dark);
+        }
+
+        header .container {
+            max-width: var(--content-width);
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .header-logo svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .header-logo span {
+            font-family: var(--font-ui);
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            color: var(--color-muted-on-dark);
+        }
+
+        .header-back {
+            font-family: var(--font-ui);
+            font-size: 14px;
+            color: var(--color-accent);
+            text-decoration: none;
+        }
+
+        .header-back:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== MAIN ===== */
+        main {
+            padding: 60px 24px 100px;
+        }
+
+        .container {
+            max-width: var(--content-width);
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 36px;
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+
+        .intro {
+            color: var(--color-muted-on-dark);
+            margin-bottom: 48px;
+            max-width: 540px;
+        }
+
+        /* ===== INPUT SECTION ===== */
+        .input-section {
+            margin-bottom: 48px;
+        }
+
+        .input-label {
+            font-family: var(--font-ui);
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--color-muted-on-dark);
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .concept-input {
+            width: 100%;
+            min-height: 160px;
+            padding: 20px;
+            font-family: var(--font-body);
+            font-size: 17px;
+            line-height: 1.7;
+            color: var(--color-text-on-dark);
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border-dark);
+            border-radius: 6px;
+            resize: vertical;
+            transition: border-color 0.2s ease;
+        }
+
+        .concept-input:focus {
+            outline: none;
+            border-color: var(--color-accent);
+        }
+
+        .concept-input::placeholder {
+            color: var(--color-muted-on-dark);
+            opacity: 0.6;
+        }
+
+        .input-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+        }
+
+        .char-count {
+            font-family: var(--font-ui);
+            font-size: 13px;
+            color: var(--color-muted-on-dark);
+        }
+
+        .usage-counter {
+            font-family: var(--font-ui);
+            font-size: 13px;
+            color: var(--color-muted-on-dark);
+            display: none;
+        }
+
+        .usage-counter.visible {
+            display: block;
+        }
+
+        .usage-counter .remaining {
+            color: var(--color-highlight);
+            font-weight: 500;
+        }
+
+        .usage-counter.warning .remaining {
+            color: var(--color-examine);
+        }
+
+        .usage-counter.depleted .remaining {
+            color: var(--color-attention);
+        }
+
+        .input-footer-left {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .analyse-btn {
+            font-family: var(--font-ui);
+            font-size: 15px;
+            font-weight: 500;
+            padding: 12px 28px;
+            background: var(--color-accent);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .analyse-btn:hover {
+            background: #2d6980;
+            transform: translateY(-1px);
+        }
+
+        .analyse-btn:disabled {
+            background: var(--color-border-dark);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ===== RESULTS SECTION ===== */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.visible {
+            display: block;
+        }
+
+        .results-divider {
+            height: 1px;
+            background: var(--color-border-dark);
+            margin: 48px 0;
+        }
+
+        /* ===== SCORES ===== */
+        .scores-panel {
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border-dark);
+            border-radius: 6px;
+            padding: 28px;
+            margin-bottom: 32px;
+        }
+
+        .scores-title {
+            font-family: var(--font-ui);
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--color-muted-on-dark);
+            margin-bottom: 20px;
+        }
+
+        .score-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--color-border-dark);
+        }
+
+        .score-row:last-child {
+            border-bottom: none;
+        }
+
+        .score-dimension {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            width: 120px;
+            color: var(--color-muted-on-dark);
+        }
+
+        .score-symbol {
+            font-size: 18px;
+            width: 28px;
+            text-align: center;
+        }
+
+        .score-symbol.solid {
+            color: var(--color-solid);
+        }
+
+        .score-symbol.examine {
+            color: var(--color-examine);
+        }
+
+        .score-symbol.attention {
+            color: var(--color-attention);
+        }
+
+        .score-label {
+            font-family: var(--font-ui);
+            font-size: 15px;
+            flex: 1;
+        }
+
+        .score-flag {
+            font-family: var(--font-ui);
+            font-size: 12px;
+            color: var(--color-accent);
+            margin-left: 12px;
+        }
+
+        .score-confidence {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--color-muted-on-dark);
+            margin-left: 16px;
+            opacity: 0.7;
+        }
+
+        /* ===== DIAGNOSIS ===== */
+        .diagnosis-panel {
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border-dark);
+            border-left: 3px solid var(--color-accent);
+            border-radius: 6px;
+            padding: 28px;
+            margin-bottom: 32px;
+        }
+
+        .diagnosis-title {
+            font-family: var(--font-ui);
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--color-muted-on-dark);
+            margin-bottom: 16px;
+        }
+
+        .diagnosis-content {
+            font-size: 17px;
+            line-height: 1.8;
+        }
+
+        .diagnosis-loading {
+            color: var(--color-muted-on-dark);
+            font-style: italic;
+        }
+
+        .diagnosis-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: var(--color-accent);
+            margin-left: 2px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* ===== REVISION ===== */
+        .revision-section {
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 1px solid var(--color-border-dark);
+        }
+
+        .revision-btn {
+            font-family: var(--font-ui);
+            font-size: 14px;
+            font-weight: 500;
+            padding: 10px 20px;
+            background: transparent;
+            color: var(--color-accent);
+            border: 1px solid var(--color-accent);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .revision-btn:hover {
+            background: var(--color-accent);
+            color: white;
+        }
+
+        /* ===== HISTORY ===== */
+        .history-section {
+            margin-top: 60px;
+            display: none;
+        }
+
+        .history-section.visible {
+            display: block;
+        }
+
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .history-title {
+            font-family: var(--font-ui);
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--color-muted-on-dark);
+        }
+
+        .history-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--color-bg-card);
+            padding: 4px;
+            border-radius: 6px;
+        }
+
+        .history-tab {
+            font-family: var(--font-ui);
+            font-size: 12px;
+            font-weight: 500;
+            padding: 6px 12px;
+            background: transparent;
+            color: var(--color-muted-on-dark);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .history-tab:hover {
+            color: var(--color-text-on-dark);
+        }
+
+        .history-tab.active {
+            background: var(--color-accent);
+            color: white;
+        }
+
+        .history-item {
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border-dark);
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 16px;
+            opacity: 0.7;
+        }
+
+        .history-item:hover {
+            opacity: 1;
+        }
+
+        .history-concept {
+            font-size: 15px;
+            color: var(--color-muted-on-dark);
+            margin-bottom: 12px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .history-scores {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .history-score {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--color-muted-on-dark);
+        }
+
+        /* ===== PASSWORD MODAL ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal {
+            background: var(--color-bg-dark);
+            border: 1px solid var(--color-border-dark);
+            border-radius: 8px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal h2 {
+            font-family: var(--font-display);
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+
+        .modal p {
+            color: var(--color-muted-on-dark);
+            margin-bottom: 24px;
+            font-size: 16px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 14px 18px;
+            font-family: var(--font-ui);
+            font-size: 16px;
+            color: var(--color-text-on-dark);
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border-dark);
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: var(--color-accent);
+        }
+
+        .modal-error {
+            color: var(--color-accent);
+            font-family: var(--font-ui);
+            font-size: 14px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .modal-error.visible {
+            display: block;
+        }
+
+        .modal-btn {
+            width: 100%;
+            font-family: var(--font-ui);
+            font-size: 15px;
+            font-weight: 500;
+            padding: 14px;
+            background: var(--color-accent);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .modal-btn:hover {
+            background: #2d6980;
+        }
+
+        /* ===== FOOTER ===== */
+        footer {
+            padding: 40px 24px;
+            text-align: center;
+            font-size: 14px;
+            color: var(--color-muted-on-dark);
+            border-top: 1px solid var(--color-border-dark);
+        }
+
+        footer a {
+            color: var(--color-accent);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        .architecture-note {
+            font-family: var(--font-ui);
+            font-size: 12px;
+            margin-top: 12px;
+            opacity: 0.6;
+        }
+
+        /* ===== LOADING STATE ===== */
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--color-muted-on-dark);
+        }
+
+        .loading-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--color-border-dark);
+            border-top-color: var(--color-accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== MODE TOGGLE ===== */
+        .mode-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 32px;
+            padding: 16px 20px;
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border-dark);
+            border-radius: 8px;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 4px;
+            background: var(--color-bg-dark);
+            padding: 4px;
+            border-radius: 6px;
+        }
+
+        .mode-btn {
+            font-family: var(--font-ui);
+            font-size: 13px;
+            font-weight: 500;
+            padding: 8px 16px;
+            background: transparent;
+            color: var(--color-muted-on-dark);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-btn:hover {
+            color: var(--color-text-on-dark);
+        }
+
+        .mode-btn.active {
+            background: var(--color-accent);
+            color: white;
+        }
+
+        .sample-btn {
+            font-family: var(--font-ui);
+            font-size: 13px;
+            font-weight: 500;
+            padding: 8px 16px;
+            background: transparent;
+            color: var(--color-accent);
+            border: 1px solid var(--color-accent);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sample-btn:hover {
+            background: var(--color-accent);
+            color: white;
+        }
+
+        /* ===== SIDE BY SIDE VIEW ===== */
+        .side-by-side-container {
+            display: none;
+            gap: 24px;
+            margin-top: 32px;
+        }
+
+        .side-by-side-container.visible {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .comparison-panel {
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border-dark);
+            border-radius: 8px;
+            padding: 24px;
+            position: relative;
+        }
+
+        .comparison-panel.direct-ai {
+            border-top: 3px solid #7a8fa6;
+        }
+
+        .comparison-panel.koher {
+            border-top: 3px solid var(--color-accent);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--color-border-dark);
+        }
+
+        .panel-title {
+            font-family: var(--font-ui);
+            font-size: 14px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .panel-title.direct-ai {
+            color: #7a8fa6;
+        }
+
+        .panel-title.koher {
+            color: var(--color-accent);
+        }
+
+        .panel-badge {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: var(--color-bg-dark);
+        }
+
+        .panel-content {
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        /* Annotations */
+        .annotation {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: rgba(59, 130, 160, 0.1);
+            border-left: 3px solid var(--color-accent);
+            border-radius: 0 6px 6px 0;
+            font-size: 14px;
+        }
+
+        .annotation-title {
+            font-family: var(--font-ui);
+            font-weight: 500;
+            color: var(--color-accent);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .annotation-title::before {
+            content: "→";
+        }
+
+        .annotation-text {
+            color: var(--color-muted-on-dark);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .koher-stage {
+            margin-top: 20px;
+            padding: 16px;
+            background: var(--color-bg-dark);
+            border-radius: 6px;
+        }
+
+        .stage-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--color-highlight);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 900px) {
+            .side-by-side-container.visible {
+                grid-template-columns: 1fr;
+            }
+
+            .mode-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+
+            .mode-toggle {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 28px;
+            }
+
+            .score-dimension {
+                width: 80px;
+                font-size: 11px;
+            }
+
+            .score-confidence {
+                display: none;
+            }
+
+            .input-footer {
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+
+            .analyse-btn {
+                width: 100%;
+            }
+
+            .mode-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Password Modal -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal">
+            <h2>Demo Access</h2>
+            <p>This is a preview build. Enter the password to access the Coherence Diagnostic tool.</p>
+            <input type="password" class="modal-input" id="passwordInput" placeholder="Password" autocomplete="off">
+            <div class="modal-error" id="passwordError">Incorrect password</div>
+            <button class="modal-btn" id="passwordSubmit">Access Demo</button>
+        </div>
+    </div>
+
+    <header>
+        <div class="container">
+            <a href="https://koher.app" class="header-logo">
+                <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M 60 35 Q 100 65, 60 100 Q 20 135, 60 165" fill="none" stroke="#3b82a0" stroke-width="18" stroke-linecap="round"/>
+                    <path d="M 100 35 Q 60 65, 100 100 Q 140 135, 100 165" fill="none" stroke="#5fb3b3" stroke-width="16" stroke-linecap="round"/>
+                    <path d="M 140 35 Q 100 65, 140 100 Q 180 135, 140 165" fill="none" stroke="#7a8fa6" stroke-width="14" stroke-linecap="round" opacity="0.6"/>
+                </svg>
+                <span>KOHER</span>
+            </a>
+            <a href="https://koher.app/tools" class="header-back">All Tools</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+
+            <h1>Coherence Diagnostic</h1>
+            <p class="intro">
+                Paste your design concept below. This tool checks five things: whether your claim is clear, whether you've supported it, whether the scope is bounded, whether assumptions are acknowledged, and whether there are gaps in your reasoning. It shows you the shape — not a grade.
+            </p>
+
+            <!-- Mode Bar -->
+            <div class="mode-bar">
+                <div class="mode-toggle">
+                    <button class="mode-btn active" data-mode="koher">Koher Architecture</button>
+                    <button class="mode-btn" data-mode="direct">Direct AI</button>
+                    <button class="mode-btn" data-mode="compare">Side-by-Side</button>
+                </div>
+                <button class="sample-btn" id="sampleBtn">📝 Sample Concept</button>
+            </div>
+
+            <!-- Input Section -->
+            <div class="input-section">
+                <label class="input-label" for="conceptInput">Your Concept</label>
+                <textarea
+                    class="concept-input"
+                    id="conceptInput"
+                    placeholder="Write or paste your design concept here (2-8 sentences)..."
+                    maxlength="2000"
+                ></textarea>
+                <div class="input-footer">
+                    <div class="input-footer-left">
+                        <span class="char-count"><span id="charCount">0</span> / 2000</span>
+                        <span class="usage-counter" id="usageCounter"><span class="remaining" id="remainingCount">10</span> analyses remaining</span>
+                    </div>
+                    <button class="analyse-btn" id="analyseBtn" disabled>Analyse</button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section" id="resultsSection">
+                <div class="results-divider"></div>
+
+                <!-- Concept Echo -->
+                <div class="scores-panel" style="margin-bottom: 24px; border-left: 3px solid var(--color-highlight);">
+                    <div class="scores-title">Analysed Concept</div>
+                    <p id="conceptEcho" style="font-size: 16px; line-height: 1.7;"></p>
+                </div>
+
+                <!-- Scores -->
+                <div class="scores-panel" id="scoresPanel">
+                    <div class="scores-title">Dimension Scores</div>
+                    <div id="scoresContainer">
+                        <!-- Scores injected here -->
+                    </div>
+                </div>
+
+                <!-- Diagnosis -->
+                <div class="diagnosis-panel" id="diagnosisPanel">
+                    <div class="diagnosis-title">What The Scores Show</div>
+                    <div class="diagnosis-content" id="diagnosisContent">
+                        <span class="diagnosis-loading">Loading diagnosis...</span>
+                    </div>
+                </div>
+
+                <!-- Revision -->
+                <div class="revision-section">
+                    <button class="revision-btn" id="revisionBtn">Revise and Resubmit</button>
+                </div>
+            </div>
+
+            <!-- Side-by-Side Comparison -->
+            <div class="side-by-side-container" id="compareSection">
+                <!-- Direct AI Panel -->
+                <div class="comparison-panel direct-ai">
+                    <div class="panel-header">
+                        <span class="panel-title direct-ai">Direct AI</span>
+                        <span class="panel-badge">Claude API</span>
+                    </div>
+                    <div class="panel-content" id="directAiContent">
+                        <div class="loading"><div class="loading-spinner"></div><span>Waiting for analysis...</span></div>
+                    </div>
+                </div>
+
+                <!-- Koher Panel -->
+                <div class="comparison-panel koher">
+                    <div class="panel-header">
+                        <span class="panel-title koher">Koher Architecture</span>
+                        <span class="panel-badge">3-Stage Pipeline</span>
+                    </div>
+                    <div class="panel-content" id="koherContent">
+                        <div class="koher-stage" id="koherStage1">
+                            <div class="stage-label">Stage 1: Qualification (DeBERTa)</div>
+                            <div id="koherStage1Content">Waiting...</div>
+                        </div>
+                        <div class="annotation">
+                            <div class="annotation-title">Why separate qualification?</div>
+                            <div class="annotation-text">DeBERTa reads language patterns and outputs confidence scores (0.0–1.0). No judgment yet — just signal extraction. This is auditable and reproducible.</div>
+                        </div>
+
+                        <div class="koher-stage" id="koherStage2">
+                            <div class="stage-label">Stage 2: Rules (Deterministic)</div>
+                            <div id="koherStage2Content">Waiting...</div>
+                        </div>
+                        <div class="annotation">
+                            <div class="annotation-title">Why deterministic rules?</div>
+                            <div class="annotation-text">Code handles judgment. Thresholds are explicit: >0.8 = SOLID, 0.5–0.8 = EXAMINE, <0.5 = ATTENTION. Same input always produces same output. No AI hallucination of criteria.</div>
+                        </div>
+
+                        <div class="koher-stage" id="koherStage3">
+                            <div class="stage-label">Stage 3: Language (Haiku)</div>
+                            <div id="koherStage3Content">Waiting...</div>
+                        </div>
+                        <div class="annotation">
+                            <div class="annotation-title">Why separate language generation?</div>
+                            <div class="annotation-text">Haiku narrates decisions already made. It cannot change the judgment — only explain it. The explanation is constrained by the rules, not invented by AI.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Section -->
+            <div class="history-section" id="historySection">
+                <div class="history-header">
+                    <div class="history-title">Previous Analyses</div>
+                    <div class="history-tabs">
+                        <button class="history-tab active" data-tab="koher">Koher</button>
+                        <button class="history-tab" data-tab="direct">Direct AI</button>
+                    </div>
+                </div>
+                <div id="historyContainer">
+                    <!-- History items injected here -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer>
+        <p><a href="https://koher.app">koher.app</a></p>
+        <p class="architecture-note">AI handles language. Code handles judgment.</p>
+    </footer>
+
+    <script>
+        // Configuration
+        const API_BASE = window.location.origin;
+        const STORAGE_KEY = 'koher_demo_password';
+        const HISTORY_KEY = 'koher_coherence_history';
+        const DIRECT_HISTORY_KEY = 'koher_direct_history';
+        const TIMEOUT_MS = 60000; // 60 seconds
+
+        // State
+        let password = null;
+        let koherHistory = [];
+        let directHistory = [];
+        let currentMode = 'koher'; // 'koher', 'direct', 'compare'
+        let currentHistoryTab = 'koher';
+        let sampleConcepts = null;
+        let remainingAnalyses = null;
+
+        // DOM Elements
+        const passwordModal = document.getElementById('passwordModal');
+        const passwordInput = document.getElementById('passwordInput');
+        const passwordError = document.getElementById('passwordError');
+        const passwordSubmit = document.getElementById('passwordSubmit');
+        const conceptInput = document.getElementById('conceptInput');
+        const charCount = document.getElementById('charCount');
+        const analyseBtn = document.getElementById('analyseBtn');
+        const resultsSection = document.getElementById('resultsSection');
+        const conceptEcho = document.getElementById('conceptEcho');
+        const scoresContainer = document.getElementById('scoresContainer');
+        const diagnosisContent = document.getElementById('diagnosisContent');
+        const revisionBtn = document.getElementById('revisionBtn');
+        const historySection = document.getElementById('historySection');
+        const historyContainer = document.getElementById('historyContainer');
+        const compareSection = document.getElementById('compareSection');
+        const directAiContent = document.getElementById('directAiContent');
+        const koherStage1Content = document.getElementById('koherStage1Content');
+        const koherStage2Content = document.getElementById('koherStage2Content');
+        const koherStage3Content = document.getElementById('koherStage3Content');
+        const modeButtons = document.querySelectorAll('.mode-btn');
+        const sampleBtn = document.getElementById('sampleBtn');
+        const usageCounter = document.getElementById('usageCounter');
+        const remainingCountEl = document.getElementById('remainingCount');
+
+        // Initialise
+        function init() {
+            // Check stored password
+            password = localStorage.getItem(STORAGE_KEY);
+            if (password) {
+                passwordModal.classList.add('hidden');
+            }
+
+            // Load Koher history
+            const storedKoherHistory = localStorage.getItem(HISTORY_KEY);
+            if (storedKoherHistory) {
+                try {
+                    koherHistory = JSON.parse(storedKoherHistory);
+                } catch (e) {
+                    koherHistory = [];
+                }
+            }
+
+            // Load Direct AI history
+            const storedDirectHistory = localStorage.getItem(DIRECT_HISTORY_KEY);
+            if (storedDirectHistory) {
+                try {
+                    directHistory = JSON.parse(storedDirectHistory);
+                } catch (e) {
+                    directHistory = [];
+                }
+            }
+
+            renderHistory();
+
+            // Event listeners
+            passwordSubmit.addEventListener('click', submitPassword);
+            passwordInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') submitPassword();
+            });
+
+            conceptInput.addEventListener('input', updateCharCount);
+            analyseBtn.addEventListener('click', analyse);
+            revisionBtn.addEventListener('click', startRevision);
+
+            // Mode switching
+            modeButtons.forEach(btn => {
+                btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+            });
+
+            // Sample concepts
+            sampleBtn.addEventListener('click', loadSampleConcept);
+
+            // History tabs
+            document.querySelectorAll('.history-tab').forEach(tab => {
+                tab.addEventListener('click', () => switchHistoryTab(tab.dataset.tab));
+            });
+
+            // Pre-fetch sample concepts
+            fetchSampleConcepts();
+        }
+
+        // History tab switching
+        function switchHistoryTab(tab) {
+            currentHistoryTab = tab;
+            document.querySelectorAll('.history-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.tab === tab);
+            });
+            renderHistory();
+        }
+
+        // Mode switching
+        function switchMode(mode) {
+            currentMode = mode;
+
+            // Update button states
+            modeButtons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+
+            // Hide all result sections
+            resultsSection.classList.remove('visible');
+            compareSection.classList.remove('visible');
+
+            // Update button text based on mode
+            if (mode === 'compare') {
+                analyseBtn.textContent = 'Compare';
+            } else {
+                analyseBtn.textContent = 'Analyse';
+            }
+        }
+
+        // Sample concepts
+        async function fetchSampleConcepts() {
+            try {
+                const response = await fetch(`${API_BASE}/samples`);
+                if (response.ok) {
+                    sampleConcepts = await response.json();
+                }
+            } catch (e) {
+                console.log('Could not fetch sample concepts');
+            }
+        }
+
+        function loadSampleConcept() {
+            if (!sampleConcepts) {
+                // Fallback if API didn't work
+                const fallbacks = [
+                    "I'm designing an app that helps people be more productive. Everyone struggles with productivity these days.",
+                    "Working parents with children aged 6-12 struggle to coordinate school pickup schedules. In interviews with 15 families, 12 mentioned last-minute changes causing stress. I'm designing a shared family calendar that syncs pickup responsibilities."
+                ];
+                conceptInput.value = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+            } else {
+                // Randomly pick from strong, weak, or middle
+                const categories = ['strong', 'weak', 'middle'];
+                const category = categories[Math.floor(Math.random() * categories.length)];
+                conceptInput.value = sampleConcepts[category];
+
+                // Refresh samples for next time
+                fetchSampleConcepts();
+            }
+            updateCharCount();
+            conceptInput.focus();
+        }
+
+        // Password handling
+        async function submitPassword() {
+            const pwd = passwordInput.value.trim();
+            if (!pwd) return;
+
+            // Test password with a health check that includes auth
+            try {
+                const response = await fetch(`${API_BASE}/analyse`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        concept: 'test concept for auth check',
+                        password: pwd,
+                        include_diagnosis: false
+                    })
+                });
+
+                if (response.ok) {
+                    password = pwd;
+                    localStorage.setItem(STORAGE_KEY, pwd);
+                    passwordModal.classList.add('hidden');
+                    passwordError.classList.remove('visible');
+                } else if (response.status === 401) {
+                    passwordError.classList.add('visible');
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                } else {
+                    // Other error, might be server issue, let them try
+                    password = pwd;
+                    localStorage.setItem(STORAGE_KEY, pwd);
+                    passwordModal.classList.add('hidden');
+                }
+            } catch (e) {
+                // Network error, store password and try later
+                password = pwd;
+                localStorage.setItem(STORAGE_KEY, pwd);
+                passwordModal.classList.add('hidden');
+            }
+        }
+
+        // Character count
+        function updateCharCount() {
+            const count = conceptInput.value.length;
+            charCount.textContent = count;
+            analyseBtn.disabled = count < 20 || remainingAnalyses === 0;
+        }
+
+        // Update remaining analyses counter
+        function updateRemainingAnalyses(count) {
+            if (count === null || count === undefined) return;
+
+            remainingAnalyses = count;
+            remainingCountEl.textContent = count;
+            usageCounter.classList.add('visible');
+
+            // Update styling based on remaining count
+            usageCounter.classList.remove('warning', 'depleted');
+            if (count === 0) {
+                usageCounter.classList.add('depleted');
+                analyseBtn.disabled = true;
+                analyseBtn.textContent = 'Limit Reached';
+            } else if (count <= 3) {
+                usageCounter.classList.add('warning');
+            }
+        }
+
+        // Main analysis - handles all modes
+        async function analyse() {
+            const concept = conceptInput.value.trim();
+            if (concept.length < 20) return;
+
+            analyseBtn.disabled = true;
+
+            if (currentMode === 'koher') {
+                analyseBtn.textContent = 'Analysing...';
+                await analyseKoher(concept);
+            } else if (currentMode === 'direct') {
+                analyseBtn.textContent = 'Analysing...';
+                await analyseDirect(concept);
+            } else if (currentMode === 'compare') {
+                analyseBtn.textContent = 'Comparing...';
+                await analyseCompare(concept);
+            }
+
+            analyseBtn.disabled = false;
+            analyseBtn.textContent = currentMode === 'compare' ? 'Compare' : 'Analyse';
+        }
+
+        // Koher Architecture analysis (3-stage pipeline)
+        async function analyseKoher(concept) {
+            try {
+                const response = await fetch(`${API_BASE}/analyse/stream`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        concept: concept,
+                        password: password,
+                        include_diagnosis: true
+                    })
+                });
+
+                if (response.status === 401) {
+                    handleAuthError();
+                    return;
+                }
+
+                if (response.status === 403) {
+                    handleLimitReached();
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error('Analysis failed');
+                }
+
+                // Show results section
+                resultsSection.classList.add('visible');
+                compareSection.classList.remove('visible');
+                conceptEcho.textContent = concept;
+
+                // Ensure scores panel is visible (may have been hidden by Direct AI mode)
+                document.getElementById('scoresPanel').style.display = 'block';
+
+                // Process SSE stream
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let diagnosisText = '';
+                let scoresData = null;
+
+                // Show spinner while waiting
+                diagnosisContent.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Generating diagnosis...</span></div>';
+                let streamStarted = false;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+
+                            if (data === '[DONE]') {
+                                diagnosisContent.innerHTML = diagnosisText;
+                                continue;
+                            }
+
+                            try {
+                                const parsed = JSON.parse(data);
+
+                                if (parsed.type === 'scores') {
+                                    scoresData = parsed.data;
+                                    renderScores(scoresData.scores);
+                                    if (scoresData.remaining_analyses !== undefined) {
+                                        updateRemainingAnalyses(scoresData.remaining_analyses);
+                                    }
+                                } else if (parsed.text) {
+                                    if (!streamStarted) streamStarted = true;
+                                    diagnosisText += parsed.text;
+                                    diagnosisContent.innerHTML = diagnosisText + '<span class="diagnosis-cursor"></span>';
+                                } else if (parsed.info) {
+                                    diagnosisContent.innerHTML = `<div class="loading"><div class="loading-spinner"></div><span>${parsed.info}</span></div>`;
+                                } else if (parsed.error) {
+                                    diagnosisContent.innerHTML = `<span style="color: var(--color-attention);">Error: ${parsed.error}</span>`;
+                                }
+                            } catch (e) {
+                                // Ignore parse errors
+                            }
+                        }
+                    }
+                }
+
+                if (scoresData) {
+                    addToKoherHistory(concept, scoresData.scores, diagnosisText);
+                }
+
+            } catch (e) {
+                console.error('Analysis error:', e);
+                diagnosisContent.innerHTML = `<span style="color: var(--color-attention);">Analysis failed. Please try again.</span>`;
+            }
+        }
+
+        // Direct AI analysis (no pipeline)
+        async function analyseDirect(concept) {
+            // Show loading state
+            resultsSection.classList.add('visible');
+            compareSection.classList.remove('visible');
+            conceptEcho.textContent = concept;
+            document.getElementById('scoresPanel').style.display = 'none';
+            diagnosisContent.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Running Direct AI analysis...</span></div>';
+
+            // Set up timeout
+            const timeoutId = setTimeout(() => {
+                diagnosisContent.innerHTML = '<p style="color: var(--color-muted-on-dark);">This is taking longer than expected.<br><strong>Please refresh the page and try again.</strong></p>';
+            }, TIMEOUT_MS);
+
+            try {
+                const response = await fetch(`${API_BASE}/analyse/direct`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        concept: concept,
+                        password: password
+                    })
+                });
+
+                clearTimeout(timeoutId);
+
+                if (response.status === 401) {
+                    handleAuthError();
+                    return;
+                }
+
+                if (response.status === 403) {
+                    handleLimitReached();
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error('Direct analysis failed');
+                }
+
+                const data = await response.json();
+
+                // Update remaining analyses
+                if (data.remaining_analyses !== undefined) {
+                    updateRemainingAnalyses(data.remaining_analyses);
+                }
+
+                // Show direct AI response
+                diagnosisContent.innerHTML = formatDirectAiResponse(data.response);
+
+                // Save to history
+                addToDirectHistory(concept, data.response);
+
+            } catch (e) {
+                clearTimeout(timeoutId);
+                console.error('Direct AI error:', e);
+                diagnosisContent.innerHTML = `<span style="color: var(--color-attention);">Direct AI analysis failed. Please try again.</span>`;
+            }
+        }
+
+        // Side-by-side comparison
+        async function analyseCompare(concept) {
+            // Show comparison view
+            resultsSection.classList.remove('visible');
+            compareSection.classList.add('visible');
+
+            // Reset content
+            directAiContent.innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Running Direct AI analysis...</span></div>';
+            koherStage1Content.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
+            koherStage2Content.innerHTML = 'Waiting...';
+            koherStage3Content.innerHTML = 'Waiting...';
+
+            // Set up timeout for both panels
+            const directTimeoutId = setTimeout(() => {
+                directAiContent.innerHTML = '<p style="color: var(--color-muted-on-dark);">Taking longer than expected.<br><strong>Please refresh the page.</strong></p>';
+            }, TIMEOUT_MS);
+
+            const koherTimeoutId = setTimeout(() => {
+                koherStage1Content.innerHTML = '<p style="color: var(--color-muted-on-dark);">Taking longer than expected.</p>';
+                koherStage2Content.innerHTML = '<strong>Please refresh the page.</strong>';
+                koherStage3Content.innerHTML = '';
+            }, TIMEOUT_MS);
+
+            // Run both analyses in parallel
+            const [directResult, koherResult] = await Promise.allSettled([
+                fetchDirectAi(concept),
+                fetchKoher(concept)
+            ]);
+
+            // Display Direct AI result
+            if (directResult.status === 'fulfilled') {
+                clearTimeout(directTimeoutId);
+                directAiContent.innerHTML = formatDirectAiResponse(directResult.value.response);
+                // Update remaining from direct result
+                if (directResult.value.remaining_analyses !== undefined) {
+                    updateRemainingAnalyses(directResult.value.remaining_analyses);
+                }
+            }
+            // If failed, timeout message will show after 60s
+
+            // Display Koher result
+            if (koherResult.status === 'fulfilled') {
+                clearTimeout(koherTimeoutId);
+                const data = koherResult.value;
+                // Update remaining from koher result (will be lower as it ran after direct)
+                if (data.remaining_analyses !== undefined) {
+                    updateRemainingAnalyses(data.remaining_analyses);
+                }
+
+                // Stage 1: Confidence scores
+                const scoresHtml = data.scores.map(s => {
+                    return `<div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px;">
+                        <span style="font-family: var(--font-mono); color: var(--color-muted-on-dark);">${s.dimension}</span>
+                        <span>${(s.confidence * 100).toFixed(0)}%</span>
+                    </div>`;
+                }).join('');
+                koherStage1Content.innerHTML = scoresHtml;
+
+                // Stage 2: Severity levels
+                const severityHtml = data.scores.map(s => {
+                    const symbol = s.display.charAt(0);
+                    let color = 'var(--color-solid)';
+                    if (s.severity === 'WORTH_EXAMINING') color = 'var(--color-examine)';
+                    if (s.severity === 'ATTENTION_NEEDED') color = 'var(--color-attention)';
+
+                    return `<div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px;">
+                        <span style="font-family: var(--font-mono); color: var(--color-muted-on-dark);">${s.dimension}</span>
+                        <span style="color: ${color};">${symbol} ${s.severity.replace('_', ' ')}</span>
+                    </div>`;
+                }).join('');
+                koherStage2Content.innerHTML = severityHtml;
+
+                // Stage 3: Diagnosis
+                koherStage3Content.innerHTML = data.diagnosis || 'No diagnosis available';
+            }
+            // If failed, timeout message will show after 60s
+        }
+
+        // Fetch functions for comparison
+        async function fetchDirectAi(concept) {
+            const response = await fetch(`${API_BASE}/analyse/direct`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ concept, password })
+            });
+
+            if (response.status === 401) {
+                handleAuthError();
+                throw new Error('Authentication required');
+            }
+
+            if (response.status === 403) {
+                handleLimitReached();
+                throw new Error('Limit reached');
+            }
+
+            if (!response.ok) throw new Error('Direct AI failed');
+            return await response.json();
+        }
+
+        async function fetchKoher(concept) {
+            const response = await fetch(`${API_BASE}/analyse`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ concept, password, include_diagnosis: true })
+            });
+
+            if (response.status === 401) {
+                handleAuthError();
+                throw new Error('Authentication required');
+            }
+
+            if (response.status === 403) {
+                handleLimitReached();
+                throw new Error('Limit reached');
+            }
+
+            if (!response.ok) throw new Error('Koher analysis failed');
+            return await response.json();
+        }
+
+        // Format Direct AI response with line breaks
+        function formatDirectAiResponse(text) {
+            return text
+                .replace(/\n\n/g, '</p><p style="margin-top: 16px;">')
+                .replace(/\n/g, '<br>')
+                .replace(/^/, '<p>')
+                .replace(/$/, '</p>')
+                // Highlight dimension names
+                .replace(/(CLAIM|EVIDENCE|SCOPE|ASSUMPTIONS|GAPS):/gi, '<strong style="color: var(--color-highlight);">$1:</strong>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/- (Strong|Unclear|Weak|Missing)/gi, '• <span style="font-weight: 500;">$1</span>');
+        }
+
+        // Handle auth errors
+        function handleAuthError() {
+            localStorage.removeItem(STORAGE_KEY);
+            password = null;
+            passwordModal.classList.remove('hidden');
+            analyseBtn.disabled = false;
+            analyseBtn.textContent = currentMode === 'compare' ? 'Compare' : 'Analyse';
+        }
+
+        // Handle limit reached
+        function handleLimitReached() {
+            updateRemainingAnalyses(0);
+            resultsSection.classList.add('visible');
+            compareSection.classList.remove('visible');
+            diagnosisContent.innerHTML = `
+                <div style="text-align: center; padding: 24px;">
+                    <p style="font-size: 18px; color: var(--color-attention); margin-bottom: 12px;">Analysis Limit Reached</p>
+                    <p style="color: var(--color-muted-on-dark);">You have used all 10 analyses available with this password.</p>
+                    <p style="color: var(--color-muted-on-dark); margin-top: 12px;">Contact <a href="mailto:hello@koher.app" style="color: var(--color-accent);">hello@koher.app</a> to request additional access.</p>
+                </div>
+            `;
+            scoresContainer.innerHTML = '';
+            conceptEcho.textContent = '';
+        }
+
+        // Render scores
+        function renderScores(scores) {
+            const html = scores.map(score => {
+                let symbolClass = 'solid';
+                if (score.severity === 'WORTH_EXAMINING') symbolClass = 'examine';
+                if (score.severity === 'ATTENTION_NEEDED') symbolClass = 'attention';
+
+                const symbol = score.display.charAt(0);
+                const label = score.display.slice(2).replace(' ← Needs attention', '');
+                const flag = score.severity === 'ATTENTION_NEEDED' ? '<span class="score-flag">← Needs attention</span>' : '';
+
+                return `
+                    <div class="score-row">
+                        <span class="score-dimension">${score.dimension}</span>
+                        <span class="score-symbol ${symbolClass}">${symbol}</span>
+                        <span class="score-label">${label}</span>
+                        ${flag}
+                        <span class="score-confidence">${(score.confidence * 100).toFixed(0)}%</span>
+                    </div>
+                `;
+            }).join('');
+
+            scoresContainer.innerHTML = html;
+        }
+
+        // Revision workflow
+        function startRevision() {
+            resultsSection.classList.remove('visible');
+            conceptInput.focus();
+            conceptInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // History - Koher
+        function addToKoherHistory(concept, scores, diagnosis) {
+            koherHistory.unshift({
+                concept,
+                scores,
+                diagnosis,
+                timestamp: Date.now()
+            });
+
+            // Keep only last 10
+            koherHistory = koherHistory.slice(0, 10);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(koherHistory));
+            renderHistory();
+        }
+
+        // History - Direct AI
+        function addToDirectHistory(concept, response) {
+            directHistory.unshift({
+                concept,
+                response,
+                timestamp: Date.now()
+            });
+
+            // Keep only last 10
+            directHistory = directHistory.slice(0, 10);
+            localStorage.setItem(DIRECT_HISTORY_KEY, JSON.stringify(directHistory));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const history = currentHistoryTab === 'koher' ? koherHistory : directHistory;
+
+            if (koherHistory.length === 0 && directHistory.length === 0) {
+                historySection.classList.remove('visible');
+                return;
+            }
+
+            historySection.classList.add('visible');
+
+            // Skip most recent (it's the current one)
+            const pastHistory = history.slice(1);
+
+            if (pastHistory.length === 0) {
+                historyContainer.innerHTML = '<p style="color: var(--color-muted-on-dark); font-size: 14px;">No previous analyses yet.</p>';
+                return;
+            }
+
+            if (currentHistoryTab === 'koher') {
+                // Koher history with scores
+                const html = pastHistory.map(item => {
+                    const scoresHtml = item.scores.map(s => {
+                        const symbol = s.display.charAt(0);
+                        return `<span class="history-score">${s.dimension}: ${symbol}</span>`;
+                    }).join('');
+
+                    return `
+                        <div class="history-item" onclick="loadHistory('${btoa(encodeURIComponent(item.concept))}')">
+                            <p class="history-concept">${item.concept}</p>
+                            <div class="history-scores">${scoresHtml}</div>
+                        </div>
+                    `;
+                }).join('');
+                historyContainer.innerHTML = html;
+            } else {
+                // Direct AI history (no scores, just response preview)
+                const html = pastHistory.map(item => {
+                    const preview = item.response.slice(0, 100) + (item.response.length > 100 ? '...' : '');
+                    return `
+                        <div class="history-item" onclick="loadHistory('${btoa(encodeURIComponent(item.concept))}')">
+                            <p class="history-concept">${item.concept}</p>
+                            <p style="font-size: 13px; color: var(--color-muted-on-dark); margin-top: 8px;">${preview}</p>
+                        </div>
+                    `;
+                }).join('');
+                historyContainer.innerHTML = html;
+            }
+        }
+
+        function loadHistory(encodedConcept) {
+            const concept = decodeURIComponent(atob(encodedConcept));
+            conceptInput.value = concept;
+            updateCharCount();
+            conceptInput.focus();
+            conceptInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // Start
+        init();
+    </script>
+
+</body>
+</html>
