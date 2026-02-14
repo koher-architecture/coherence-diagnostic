@@ -58,11 +58,12 @@
 
 ## Environment Variables
 
-| Variable | Purpose |
-|----------|---------|
-| `ANTHROPIC_API_KEY` | Haiku API for Stage 3 diagnosis |
-| `DEMO_PASSWORD` | Password for demo users |
-| `ADMIN_PASSWORD` | Password for `/admin` panel |
+| Variable | Purpose | Required |
+|----------|---------|----------|
+| `ANTHROPIC_API_KEY` | Haiku API for Stage 3 diagnosis | Yes |
+| `ADMIN_PASSWORD` | Password for `/admin` panel | Yes |
+
+**Note:** User passwords are created via the admin panel. No default demo password exists.
 
 ---
 

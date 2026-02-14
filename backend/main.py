@@ -45,7 +45,9 @@ from stage2_rules import evaluate_concept, format_severity_display, Severity
 
 MODEL_PATH = Path(__file__).parent.parent / "models" / "deberta-coherence"
 DB_PATH = Path(__file__).parent.parent / "data" / "users.db"
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "koher-admin-2026")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+if not ADMIN_PASSWORD:
+    raise RuntimeError("ADMIN_PASSWORD environment variable is required")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 # Limits
