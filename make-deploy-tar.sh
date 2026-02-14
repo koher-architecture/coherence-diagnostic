@@ -23,12 +23,11 @@ INCLUDE_FILES=(
     README.md
 )
 
-# Directories to include
+# Directories to include (models downloaded at build time via Dockerfile)
 INCLUDE_DIRS=(
     backend
     frontend
     src
-    models
 )
 
 for item in "${INCLUDE_FILES[@]}"; do

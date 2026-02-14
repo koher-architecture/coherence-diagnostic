@@ -14,6 +14,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
+# Model download stage
+FROM python:3.11-slim as model-downloader
+
+WORKDIR /app
+
+# Install git and git-lfs for model download
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    git-lfs \
+    && rm -rf /var/lib/apt/lists/* \
+    && git lfs install
+
+# Clone only the models directory using sparse checkout
+RUN git clone --filter=blob:none --no-checkout --depth 1 \
+    https://github.com/koher-architecture/coherence-diagnostic.git . \
+    && git sparse-checkout init --cone \
+    && git sparse-checkout set models \
+    && git checkout main
+
 # Final stage
 FROM python:3.11-slim
 
@@ -23,18 +42,20 @@ WORKDIR /app
 COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
 
+# Copy model from downloader stage
+COPY --from=model-downloader /app/models ./models/
+
 # Copy application code
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 COPY src/ ./src/
-COPY models/ ./models/
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Default password (override in deployment)
-ENV DEMO_PASSWORD=koher2026
+# Admin password (must be set in deployment)
+ENV ADMIN_PASSWORD=""
 
 # Anthropic API key (must be set in deployment)
 ENV ANTHROPIC_API_KEY=""
