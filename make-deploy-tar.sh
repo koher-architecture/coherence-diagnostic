@@ -66,7 +66,7 @@ if [[ -f "$TAR_FILE" ]]; then
     echo ""
     echo "  Required environment variables:"
     echo "  - ANTHROPIC_API_KEY: Your Anthropic API key"
-    echo "  - DEMO_PASSWORD: Password for demo access"
+    echo "  - ADMIN_PASSWORD: Password for /admin panel"
 else
     echo "[ERROR] Failed to create $TAR_FILE"
     exit 2
