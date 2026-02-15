@@ -1,8 +1,11 @@
 # CLAUDE.md — Coherence Diagnostic Tool
 
 **Created:** 13 February 2026
+
 **Updated:** 14 February 2026
+
 **Status:** Ready for deployment
+
 **Open source:** Yes (users provide own Haiku API key)
 
 ---
