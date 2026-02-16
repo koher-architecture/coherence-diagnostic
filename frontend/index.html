@@ -870,7 +870,10 @@
                 </svg>
                 <span>KOHER</span>
             </a>
-            <a href="https://koher.app/tools" class="header-back">All Tools</a>
+            <div style="display: flex; gap: 20px; align-items: center;">
+                <a href="https://koher.app/tools" class="header-back">All Tools</a>
+                <a href="#" class="header-back" id="logoutLink" style="display: none;">Logout</a>
+            </div>
         </div>
     </header>
 
@@ -1055,6 +1058,7 @@
         const sampleBtn = document.getElementById('sampleBtn');
         const usageCounter = document.getElementById('usageCounter');
         const remainingCountEl = document.getElementById('remainingCount');
+        const logoutLink = document.getElementById('logoutLink');
 
         // Initialise
         function init() {
@@ -1062,6 +1066,9 @@
             password = localStorage.getItem(STORAGE_KEY);
             if (password) {
                 passwordModal.classList.add('hidden');
+                logoutLink.style.display = 'inline';
+                // Fetch user status to show remaining analyses
+                fetchUserStatus();
             }
 
             // Load Koher history
@@ -1103,6 +1110,9 @@
 
             // Sample concepts
             sampleBtn.addEventListener('click', loadSampleConcept);
+
+            // Logout
+            logoutLink.addEventListener('click', logout);
 
             // History tabs
             document.querySelectorAll('.history-tab').forEach(tab => {
@@ -1155,6 +1165,33 @@
             }
         }
 
+        // Fetch user status (remaining analyses) on page load
+        async function fetchUserStatus() {
+            if (!password) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/user/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    updateRemainingAnalyses(data.remaining_analyses);
+                    if (data.limit_reached) {
+                        analyseBtn.disabled = true;
+                        analyseBtn.textContent = 'Limit Reached';
+                    }
+                } else if (response.status === 401) {
+                    // Password invalid, clear and show modal
+                    handleAuthError();
+                }
+            } catch (e) {
+                console.log('Could not fetch user status');
+            }
+        }
+
         function loadSampleConcept() {
             if (!sampleConcepts) {
                 // Fallback if API didn't work
@@ -1174,6 +1211,17 @@
             }
             updateCharCount();
             conceptInput.focus();
+        }
+
+        // Logout
+        function logout(e) {
+            e.preventDefault();
+            localStorage.removeItem(STORAGE_KEY);
+            password = null;
+            logoutLink.style.display = 'none';
+            passwordModal.classList.remove('hidden');
+            passwordInput.value = '';
+            passwordInput.focus();
         }
 
         // Password handling
@@ -1198,6 +1246,7 @@
                     localStorage.setItem(STORAGE_KEY, pwd);
                     passwordModal.classList.add('hidden');
                     passwordError.classList.remove('visible');
+                    logoutLink.style.display = 'inline';
                 } else if (response.status === 401) {
                     passwordError.classList.add('visible');
                     passwordInput.value = '';
@@ -1207,12 +1256,14 @@
                     password = pwd;
                     localStorage.setItem(STORAGE_KEY, pwd);
                     passwordModal.classList.add('hidden');
+                    logoutLink.style.display = 'inline';
                 }
             } catch (e) {
                 // Network error, store password and try later
                 password = pwd;
                 localStorage.setItem(STORAGE_KEY, pwd);
                 passwordModal.classList.add('hidden');
+                logoutLink.style.display = 'inline';
             }
         }
 
@@ -1558,6 +1609,7 @@
         function handleAuthError() {
             localStorage.removeItem(STORAGE_KEY);
             password = null;
+            logoutLink.style.display = 'none';
             passwordModal.classList.remove('hidden');
             analyseBtn.disabled = false;
             analyseBtn.textContent = currentMode === 'compare' ? 'Compare' : 'Analyse';

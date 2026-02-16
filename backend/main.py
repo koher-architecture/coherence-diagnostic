@@ -32,7 +32,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
-import anthropic
+import openai
 
 # Add parent directory to path for stage2_rules import
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -48,7 +48,7 @@ DB_PATH = Path(__file__).parent.parent / "data" / "users.db"
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 if not ADMIN_PASSWORD:
     raise RuntimeError("ADMIN_PASSWORD environment variable is required")
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 
 # Limits
 MAX_ANALYSES_PER_USER = 10
@@ -338,12 +338,15 @@ async def lifespan(app: FastAPI):
     model.to(device)
     print(f"Model loaded on {device}")
 
-    # Initialise Anthropic client if key provided
-    if ANTHROPIC_API_KEY:
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        print("Anthropic client initialised")
+    # Initialise OpenRouter client if key provided
+    if OPENROUTER_API_KEY:
+        client = openai.OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=OPENROUTER_API_KEY
+        )
+        print("OpenRouter client initialised")
     else:
-        print("Warning: ANTHROPIC_API_KEY not set, Stage 3 will be unavailable")
+        print("Warning: OPENROUTER_API_KEY not set, Stage 3 will be unavailable")
 
     yield
 
@@ -405,7 +408,7 @@ class DirectAIRequest(BaseModel):
 class DirectAIResponse(BaseModel):
     concept: str
     response: str
-    model: str = "claude-3-5-haiku-latest"
+    model: str = "anthropic/claude-haiku-4.5"
     remaining_analyses: Optional[int] = None
 
 
@@ -509,7 +512,7 @@ RETRY_DELAY = 2  # seconds
 
 
 async def stream_diagnosis(concept: str, evaluation: dict):
-    """Stream diagnosis from Haiku with retry logic."""
+    """Stream diagnosis from Haiku via OpenRouter with retry logic."""
     global client
 
     if not client:
@@ -520,20 +523,23 @@ async def stream_diagnosis(concept: str, evaluation: dict):
 
     for attempt in range(MAX_RETRIES):
         try:
-            with client.messages.stream(
-                model="claude-3-5-haiku-latest",
+            stream = client.chat.completions.create(
+                model="anthropic/claude-haiku-4.5",
                 max_tokens=500,
-                system=HAIKU_SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": user_prompt}]
-            ) as stream:
-                for text in stream.text_stream:
-                    # SSE format
-                    yield f"data: {json.dumps({'text': text})}\n\n"
+                messages=[
+                    {"role": "system", "content": HAIKU_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt}
+                ],
+                stream=True
+            )
+            for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield f"data: {json.dumps({'text': chunk.choices[0].delta.content})}\n\n"
 
             yield "data: [DONE]\n\n"
             return  # Success, exit function
 
-        except anthropic.APIStatusError as e:
+        except openai.APIStatusError as e:
             if e.status_code == 529 or "overloaded" in str(e).lower():
                 if attempt < MAX_RETRIES - 1:
                     yield f"data: {json.dumps({'info': f'API busy, retrying ({attempt + 1}/{MAX_RETRIES})...'})}\n\n"
@@ -548,7 +554,7 @@ async def stream_diagnosis(concept: str, evaluation: dict):
 
 
 async def get_full_diagnosis(concept: str, evaluation: dict) -> str:
-    """Get complete diagnosis (non-streaming) with retry logic."""
+    """Get complete diagnosis (non-streaming) via OpenRouter with retry logic."""
     global client
 
     if not client:
@@ -558,15 +564,17 @@ async def get_full_diagnosis(concept: str, evaluation: dict) -> str:
 
     for attempt in range(MAX_RETRIES):
         try:
-            response = client.messages.create(
-                model="claude-3-5-haiku-latest",
+            response = client.chat.completions.create(
+                model="anthropic/claude-haiku-4.5",
                 max_tokens=500,
-                system=HAIKU_SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": user_prompt}]
+                messages=[
+                    {"role": "system", "content": HAIKU_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt}
+                ]
             )
-            return response.content[0].text
+            return response.choices[0].message.content
 
-        except anthropic.APIStatusError as e:
+        except openai.APIStatusError as e:
             if e.status_code == 529 or "overloaded" in str(e).lower():
                 if attempt < MAX_RETRIES - 1:
                     await asyncio.sleep(RETRY_DELAY * (attempt + 1))
@@ -773,15 +781,17 @@ async def get_direct_ai_response(concept: str) -> str:
 
     for attempt in range(MAX_RETRIES):
         try:
-            response = client.messages.create(
-                model="claude-3-5-haiku-latest",
+            response = client.chat.completions.create(
+                model="anthropic/claude-haiku-4.5",
                 max_tokens=800,
-                system=DIRECT_AI_SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": f"Design concept:\n\n{concept}"}]
+                messages=[
+                    {"role": "system", "content": DIRECT_AI_SYSTEM_PROMPT},
+                    {"role": "user", "content": f"Design concept:\n\n{concept}"}
+                ]
             )
-            return response.content[0].text
+            return response.choices[0].message.content
 
-        except anthropic.APIStatusError as e:
+        except openai.APIStatusError as e:
             if e.status_code == 529 or "overloaded" in str(e).lower():
                 if attempt < MAX_RETRIES - 1:
                     await asyncio.sleep(RETRY_DELAY * (attempt + 1))
@@ -808,11 +818,10 @@ async def analyse_direct(request: DirectAIRequest):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid password")
 
-    # Direct AI analysis
+    # Direct AI analysis (no usage increment — counted by /analyse endpoint in comparison mode)
     response = await get_direct_ai_response(request.concept)
 
-    # Increment usage and get remaining count
-    remaining = increment_usage(request.password)
+    remaining = user["remaining_analyses"]
 
     return DirectAIResponse(
         concept=request.concept,
@@ -878,6 +887,30 @@ class UserInfo(BaseModel):
     created_at: str
     usage_count: int
     remaining_analyses: int
+
+
+class UserStatusRequest(BaseModel):
+    password: str = Field(..., description="User password")
+
+
+@app.post("/user/status")
+async def get_user_status(request: UserStatusRequest):
+    """
+    Get user status including remaining analyses.
+
+    Returns user info without consuming an analysis.
+    """
+    user = verify_user(request.password)
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid password")
+
+    return {
+        "valid": True,
+        "usage_count": user["usage_count"],
+        "remaining_analyses": user["remaining_analyses"],
+        "limit_reached": user["limit_reached"]
+    }
 
 
 @app.post("/admin/login")

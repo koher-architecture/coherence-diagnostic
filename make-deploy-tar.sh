@@ -20,10 +20,11 @@ echo "[DEBUG] Creating deployment tarball for $APP_NAME"
 INCLUDE_FILES=(
     captain-definition
     Dockerfile
+    entrypoint.sh
     README.md
 )
 
-# Directories to include (models downloaded at build time via Dockerfile)
+# Directories to include (model downloaded at runtime into persistent volume)
 INCLUDE_DIRS=(
     backend
     frontend
@@ -64,8 +65,12 @@ if [[ -f "$TAR_FILE" ]]; then
     echo "  Upload to CapRover → coherence-demo.koher.app"
     echo ""
     echo "  Required environment variables:"
-    echo "  - ANTHROPIC_API_KEY: Your Anthropic API key"
+    echo "  - OPENROUTER_API_KEY: Your OpenRouter API key"
     echo "  - ADMIN_PASSWORD: Password for /admin panel"
+    echo ""
+    echo "  Required CapRover persistent directories:"
+    echo "  - /app/data    (SQLite DB — users, passwords, usage history)"
+    echo "  - /app/models  (DeBERTa model — downloaded on first run)"
 else
     echo "[ERROR] Failed to create $TAR_FILE"
     exit 2
