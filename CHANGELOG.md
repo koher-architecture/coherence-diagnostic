@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] — 2026-02-16
+
+### Added
+
+- **Logout functionality** — header link to clear stored password and return to login
+- **User status endpoint** (`/user/status`) — returns remaining analyses without consuming one
+- **Usage counter on page load** — authenticated users see remaining analyses immediately
+
+### Changed
+
+- **OpenRouter API** — Stage 3 now uses OpenRouter (`anthropic/claude-haiku-4.5`) instead of direct Anthropic API
+- **First-deploy model download** — DeBERTa model downloads via `entrypoint.sh` on first container start, persists in volume
+- **Environment variable** — `ANTHROPIC_API_KEY` replaced with `OPENROUTER_API_KEY`
+- **Dockerfile** — removed multi-stage build, model downloaded at runtime instead of bundled
+
+### Removed
+
+- `pre-commit-check.sh` — unused pre-commit hook script
+- `STATUS.md` — replaced by `COMMIT-STATUS.md` (gitignored)
+
+---
+
 ## [1.1.0] — 2026-02-14
 
 ### Added
