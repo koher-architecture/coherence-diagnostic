@@ -190,6 +190,26 @@ docker run -p 8000:8000 \
 
 ---
 
+## Git Workflow
+
+### After Every Commit
+
+After creating a git commit, **always update `COMMIT-STATUS.md`** with:
+
+```markdown
+# Commit Status
+
+**Last commit:** [commit hash]
+**Date:** [date and time]
+**Message:** [commit message first line]
+**Pushed:** Yes / No
+**Remote:** [remote URL if pushed]
+```
+
+This file tracks the most recent commit state for session continuity across Dropbox sync.
+
+---
+
 ## Open Source Strategy
 
 - MIT licence
@@ -199,4 +219,4 @@ docker run -p 8000:8000 \
 
 ---
 
-*Last updated: 14 February 2026, 10:00*
+*Last updated: 16 February 2026, 18:45*

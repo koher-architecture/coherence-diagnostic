@@ -56,3 +56,6 @@ models/deberta-coherence/checkpoint-*/
 
 # User database
 data/
+
+# Local commit tracking
+COMMIT-STATUS.md
