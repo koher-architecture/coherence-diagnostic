@@ -6,7 +6,7 @@
 
 **Status:** Ready for deployment
 
-**Open source:** Yes (users provide own Haiku API key)
+**Open source:** Yes (users provide own OpenRouter API key)
 
 ---
 
@@ -33,10 +33,11 @@ coherence-diagnostic/               (714 MB)
 ├── .gitignore                      — Git ignore patterns
 ├── spec.md                         — Full tool specification
 ├── Dockerfile                      — Container build
+├── entrypoint.sh                   — Downloads model on first deploy, starts server
 ├── captain-definition              — CapRover deployment config
 ├── make-deploy-tar.sh              — Script to create deployment tarball
 ├── backend/
-│   ├── main.py                     — FastAPI application
+│   ├── main.py                     — FastAPI application (OpenRouter for Stage 3)
 │   └── requirements.txt            — Python dependencies
 ├── frontend/
 │   └── index.html                  — Single-page application
@@ -81,9 +82,15 @@ coherence-diagnostic/               (714 MB)
 
 # Upload to CapRover
 # Set environment variables:
-# - ANTHROPIC_API_KEY: Your Anthropic API key
-# - DEMO_PASSWORD: Password for demo access (default: koher2026)
+# - OPENROUTER_API_KEY: Your OpenRouter API key
+# - ADMIN_PASSWORD: Password for access
+#
+# Required persistent directories:
+# - /app/data    (SQLite DB — users, passwords, usage history)
+# - /app/models  (DeBERTa model — downloaded on first deploy)
 ```
+
+**Note:** The DeBERTa model (~750MB) downloads automatically on first deploy via `entrypoint.sh`. It persists in the `/app/models` volume — subsequent container restarts use the cached model.
 
 ### Local Development
 
@@ -92,8 +99,8 @@ coherence-diagnostic/               (714 MB)
 pip install -r backend/requirements.txt
 
 # Set environment variables
-export ANTHROPIC_API_KEY=your_key_here
-export DEMO_PASSWORD=your_password
+export OPENROUTER_API_KEY=your_key_here
+export ADMIN_PASSWORD=your_password
 
 # Run server
 uvicorn backend.main:app --reload
@@ -108,10 +115,12 @@ open http://localhost:8000
 # Build
 docker build -t coherence-diagnostic .
 
-# Run
+# Run (with persistent volumes)
 docker run -p 8000:8000 \
-  -e ANTHROPIC_API_KEY=your_key \
-  -e DEMO_PASSWORD=your_password \
+  -e OPENROUTER_API_KEY=your_key \
+  -e ADMIN_PASSWORD=your_password \
+  -v coherence-models:/app/models \
+  -v coherence-data:/app/data \
   coherence-diagnostic
 ```
 
@@ -214,9 +223,9 @@ This file tracks the most recent commit state for session continuity across Drop
 
 - MIT licence
 - Users clone repo and run locally or deploy to own VPS
-- Users provide own Anthropic API key for Haiku
-- Model weights included in repo (738 MB)
+- Users provide own OpenRouter API key (for Claude Haiku)
+- Model weights included in repo (738 MB) or downloaded on first deploy
 
 ---
 
-*Last updated: 16 February 2026, 18:45*
+*Last updated: 16 February 2026, 19:10*

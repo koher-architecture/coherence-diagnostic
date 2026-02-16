@@ -20,12 +20,12 @@ Hosted instance available by invitation. [Request access](mailto:hello@koher.app
 git clone https://github.com/koher-architecture/coherence-diagnostic.git
 cd coherence-diagnostic
 pip install -r backend/requirements.txt
-export ANTHROPIC_API_KEY="your-key-here"
+export OPENROUTER_API_KEY="your-key-here"
 uvicorn backend.main:app --reload
 # Open http://localhost:8000
 ```
 
-Requires Python 3.11+, ~750MB disk (for model weights), and an [Anthropic API key](https://console.anthropic.com/).
+Requires Python 3.11+, ~750MB disk (for model weights), and an [OpenRouter API key](https://openrouter.ai/).
 
 ---
 
@@ -91,7 +91,7 @@ When you ask AI to "judge whether this is good," you lose auditability. When you
 
 - Python 3.11+
 - ~750MB disk space (for DeBERTa model)
-- Anthropic API key (for Stage 3 diagnosis)
+- OpenRouter API key (for Stage 3 diagnosis via Claude Haiku)
 
 ### Setup
 
@@ -107,8 +107,8 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 # Install dependencies
 pip install -r backend/requirements.txt
 
-# Set your Anthropic API key
-export ANTHROPIC_API_KEY="your-key-here"
+# Set your OpenRouter API key
+export OPENROUTER_API_KEY="your-key-here"
 
 # Run the server
 uvicorn backend.main:app --reload
@@ -120,8 +120,8 @@ Open `http://localhost:8000` in your browser.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | For Stage 3 diagnosis (Haiku) |
-| `DEMO_PASSWORD` | No | Password protection (default: none) |
+| `OPENROUTER_API_KEY` | Yes | For Stage 3 diagnosis (Claude Haiku via OpenRouter) |
+| `ADMIN_PASSWORD` | No | Password protection (default: none) |
 | `SESSION_SECRET` | No | For signed cookies |
 
 ### Docker
@@ -130,12 +130,16 @@ Open `http://localhost:8000` in your browser.
 # Build
 docker build -t coherence-diagnostic .
 
-# Run
+# Run (with persistent volumes for model and data)
 docker run -p 8000:8000 \
-  -e ANTHROPIC_API_KEY=your_key \
-  -e DEMO_PASSWORD=your_password \
+  -e OPENROUTER_API_KEY=your_key \
+  -e ADMIN_PASSWORD=your_password \
+  -v coherence-models:/app/models \
+  -v coherence-data:/app/data \
   coherence-diagnostic
 ```
+
+**Note:** The DeBERTa model (~750MB) downloads automatically on first deploy. It persists in the `/app/models` volume — subsequent container restarts use the cached model.
 
 ---
 
@@ -146,9 +150,10 @@ coherence-diagnostic/
 ├── README.md                     # This file
 ├── LICENSE                       # MIT
 ├── Dockerfile                    # Container build
+├── entrypoint.sh                 # Downloads model on first deploy, then starts server
 ├── captain-definition            # CapRover deployment config
 ├── backend/
-│   ├── main.py                   # FastAPI server
+│   ├── main.py                   # FastAPI server (OpenRouter for Stage 3)
 │   └── requirements.txt          # Python dependencies
 ├── frontend/
 │   └── index.html                # Single-page application
