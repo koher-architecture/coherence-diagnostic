@@ -111,31 +111,6 @@
             text-decoration: underline;
         }
 
-        .header-right {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-
-        .header-user {
-            font-family: var(--font-ui);
-            font-size: 13px;
-            color: var(--color-muted-on-dark);
-        }
-
-        .header-user .remaining {
-            color: var(--color-highlight);
-            font-weight: 500;
-        }
-
-        .header-user.warning .remaining {
-            color: var(--color-examine);
-        }
-
-        .header-user.depleted .remaining {
-            color: var(--color-attention);
-        }
-
         /* ===== MAIN ===== */
         main {
             padding: 60px 24px 100px;
@@ -158,119 +133,6 @@
             color: var(--color-muted-on-dark);
             margin-bottom: 48px;
             max-width: 540px;
-        }
-
-        /* ===== SCREENS (register, check-email, waitlist, exhausted) ===== */
-        .screen {
-            display: none;
-        }
-
-        .screen.active {
-            display: block;
-        }
-
-        .gate-card {
-            background: var(--color-bg-card);
-            border: 1px solid var(--color-border-dark);
-            border-radius: 8px;
-            padding: 48px 40px;
-            max-width: 440px;
-            margin: 80px auto;
-            text-align: center;
-        }
-
-        .gate-card h2 {
-            font-family: var(--font-display);
-            font-size: 24px;
-            margin-bottom: 16px;
-        }
-
-        .gate-card p {
-            color: var(--color-muted-on-dark);
-            margin-bottom: 24px;
-            font-size: 16px;
-            line-height: 1.7;
-        }
-
-        .gate-card .form-group {
-            text-align: left;
-            margin-bottom: 16px;
-        }
-
-        .gate-card .form-label {
-            display: block;
-            font-family: var(--font-ui);
-            font-size: 13px;
-            font-weight: 500;
-            letter-spacing: 0.05em;
-            color: var(--color-muted-on-dark);
-            margin-bottom: 6px;
-        }
-
-        .gate-card .form-input {
-            width: 100%;
-            padding: 14px 18px;
-            font-family: var(--font-ui);
-            font-size: 16px;
-            color: var(--color-text-on-dark);
-            background: var(--color-bg-dark);
-            border: 1px solid var(--color-border-dark);
-            border-radius: 6px;
-        }
-
-        .gate-card .form-input:focus {
-            outline: none;
-            border-color: var(--color-accent);
-        }
-
-        .gate-card .form-error {
-            color: var(--color-attention);
-            font-family: var(--font-ui);
-            font-size: 14px;
-            margin-bottom: 16px;
-            display: none;
-        }
-
-        .gate-card .form-error.visible {
-            display: block;
-        }
-
-        .gate-btn {
-            width: 100%;
-            font-family: var(--font-ui);
-            font-size: 15px;
-            font-weight: 500;
-            padding: 14px;
-            background: var(--color-accent);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background 0.2s ease;
-        }
-
-        .gate-btn:hover {
-            background: #2d6980;
-        }
-
-        .gate-btn:disabled {
-            background: var(--color-border-dark);
-            cursor: not-allowed;
-        }
-
-        .gate-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-            display: block;
-        }
-
-        .gate-card a {
-            color: var(--color-accent);
-            text-decoration: none;
-        }
-
-        .gate-card a:hover {
-            text-decoration: underline;
         }
 
         /* ===== INPUT SECTION ===== */
@@ -580,6 +442,7 @@
             padding: 20px;
             margin-bottom: 16px;
             opacity: 0.7;
+            cursor: pointer;
         }
 
         .history-item:hover {
@@ -872,11 +735,6 @@
                 padding: 8px 12px;
                 font-size: 12px;
             }
-
-            .gate-card {
-                margin: 40px auto;
-                padding: 32px 24px;
-            }
         }
     </style>
 </head>
@@ -892,200 +750,143 @@
                 </svg>
                 <span>KOHER</span>
             </a>
-            <div class="header-right">
-                <a href="https://koher.app/tools" class="header-back">All Tools</a>
-                <span class="header-user" id="headerUser" style="display: none;">
-                    <span class="remaining" id="headerRemaining">10</span> analyses left
-                </span>
-                <a href="#" class="header-back" id="logoutLink" style="display: none;">Logout</a>
-            </div>
+            <a href="https://koher.app/tools" class="header-back">All Tools</a>
         </div>
     </header>
 
-    <!-- ===== REGISTRATION SCREEN ===== -->
-    <div class="screen" id="screenRegister">
-        <div class="gate-card">
-            <h2>Access the Diagnostic</h2>
-            <p>Enter your name and email to receive a verification link. 10 analyses per account.</p>
-            <div class="form-group">
-                <label class="form-label" for="regName">Name</label>
-                <input type="text" class="form-input" id="regName" placeholder="Your name" autocomplete="name">
+    <main>
+        <div class="container">
+
+            <h1>Coherence Diagnostic</h1>
+            <p class="intro">
+                Paste your design concept below. This tool checks five things: whether your claim is clear, whether you've supported it, whether the scope is bounded, whether assumptions are acknowledged, and whether there are gaps in your reasoning. It shows you the shape — not a grade.
+            </p>
+
+            <!-- Mode Bar -->
+            <div class="mode-bar">
+                <div class="mode-toggle">
+                    <button class="mode-btn active" data-mode="koher">Koher Architecture</button>
+                    <button class="mode-btn" data-mode="direct">Direct AI</button>
+                    <button class="mode-btn" data-mode="compare">Side-by-Side</button>
+                </div>
+                <button class="sample-btn" id="sampleBtn">Sample Concept</button>
             </div>
-            <div class="form-group">
-                <label class="form-label" for="regEmail">Email</label>
-                <input type="email" class="form-input" id="regEmail" placeholder="you@example.com" autocomplete="email">
+
+            <!-- Input Section -->
+            <div class="input-section">
+                <label class="input-label" for="conceptInput">Your Concept</label>
+                <textarea
+                    class="concept-input"
+                    id="conceptInput"
+                    placeholder="Write or paste your design concept here (2-8 sentences)..."
+                    maxlength="2000"
+                ></textarea>
+                <div class="input-footer">
+                    <div class="input-footer-left">
+                        <span class="char-count"><span id="charCount">0</span> / 2000</span>
+                    </div>
+                    <button class="analyse-btn" id="analyseBtn" disabled>Analyse</button>
+                </div>
             </div>
-            <div class="form-error" id="regError"></div>
-            <button class="gate-btn" id="regSubmit">Send Verification Link</button>
-        </div>
-    </div>
 
-    <!-- ===== CHECK EMAIL SCREEN ===== -->
-    <div class="screen" id="screenCheckEmail">
-        <div class="gate-card">
-            <span class="gate-icon">&#9993;</span>
-            <h2>Check Your Email</h2>
-            <p>We've sent a verification link to <strong id="checkEmailAddr"></strong>. Click the link to access the tool.</p>
-            <p style="font-size: 14px; color: var(--color-muted-on-dark);">The link expires in 1 hour. Check your spam folder if you don't see it.</p>
-        </div>
-    </div>
+            <!-- Results Section -->
+            <div class="results-section" id="resultsSection">
+                <div class="results-divider"></div>
 
-    <!-- ===== WAITLIST SCREEN ===== -->
-    <div class="screen" id="screenWaitlist">
-        <div class="gate-card">
-            <span class="gate-icon">&#9203;</span>
-            <h2>Today's Spots Are Full</h2>
-            <p>We limit new signups to 10 per day. You've been added to the waitlist and we'll send you access when a spot opens.</p>
-            <p style="font-size: 14px; color: var(--color-muted-on-dark);">Spots reset daily. You can also try again tomorrow.</p>
-        </div>
-    </div>
-
-    <!-- ===== EXHAUSTED SCREEN ===== -->
-    <div class="screen" id="screenExhausted">
-        <div class="gate-card">
-            <span class="gate-icon">&#10003;</span>
-            <h2>All Analyses Used</h2>
-            <p>You've used all 10 analyses available with this account.</p>
-            <p style="font-size: 14px;">Contact <a href="mailto:hello@koher.app">hello@koher.app</a> for additional access.</p>
-        </div>
-    </div>
-
-    <!-- ===== TOOL SCREEN (main content) ===== -->
-    <div class="screen" id="screenTool">
-        <main>
-            <div class="container">
-
-                <h1>Coherence Diagnostic</h1>
-                <p class="intro">
-                    Paste your design concept below. This tool checks five things: whether your claim is clear, whether you've supported it, whether the scope is bounded, whether assumptions are acknowledged, and whether there are gaps in your reasoning. It shows you the shape — not a grade.
-                </p>
-
-                <!-- Mode Bar -->
-                <div class="mode-bar">
-                    <div class="mode-toggle">
-                        <button class="mode-btn active" data-mode="koher">Koher Architecture</button>
-                        <button class="mode-btn" data-mode="direct">Direct AI</button>
-                        <button class="mode-btn" data-mode="compare">Side-by-Side</button>
-                    </div>
-                    <button class="sample-btn" id="sampleBtn">Sample Concept</button>
+                <!-- Concept Echo -->
+                <div class="scores-panel" style="margin-bottom: 24px; border-left: 3px solid var(--color-highlight);">
+                    <div class="scores-title">Analysed Concept</div>
+                    <p id="conceptEcho" style="font-size: 16px; line-height: 1.7;"></p>
                 </div>
 
-                <!-- Input Section -->
-                <div class="input-section">
-                    <label class="input-label" for="conceptInput">Your Concept</label>
-                    <textarea
-                        class="concept-input"
-                        id="conceptInput"
-                        placeholder="Write or paste your design concept here (2-8 sentences)..."
-                        maxlength="2000"
-                    ></textarea>
-                    <div class="input-footer">
-                        <div class="input-footer-left">
-                            <span class="char-count"><span id="charCount">0</span> / 2000</span>
-                        </div>
-                        <button class="analyse-btn" id="analyseBtn" disabled>Analyse</button>
+                <!-- Scores -->
+                <div class="scores-panel" id="scoresPanel">
+                    <div class="scores-title">Dimension Scores</div>
+                    <div id="scoresContainer">
+                        <!-- Scores injected here -->
                     </div>
                 </div>
 
-                <!-- Results Section -->
-                <div class="results-section" id="resultsSection">
-                    <div class="results-divider"></div>
-
-                    <!-- Concept Echo -->
-                    <div class="scores-panel" style="margin-bottom: 24px; border-left: 3px solid var(--color-highlight);">
-                        <div class="scores-title">Analysed Concept</div>
-                        <p id="conceptEcho" style="font-size: 16px; line-height: 1.7;"></p>
-                    </div>
-
-                    <!-- Scores -->
-                    <div class="scores-panel" id="scoresPanel">
-                        <div class="scores-title">Dimension Scores</div>
-                        <div id="scoresContainer">
-                            <!-- Scores injected here -->
-                        </div>
-                    </div>
-
-                    <!-- Diagnosis -->
-                    <div class="diagnosis-panel" id="diagnosisPanel">
-                        <div class="diagnosis-title">What The Scores Show</div>
-                        <div class="diagnosis-content" id="diagnosisContent">
-                            <span class="diagnosis-loading">Loading diagnosis...</span>
-                        </div>
-                    </div>
-
-                    <!-- Revision -->
-                    <div class="revision-section">
-                        <button class="revision-btn" id="revisionBtn">Revise and Resubmit</button>
+                <!-- Diagnosis -->
+                <div class="diagnosis-panel" id="diagnosisPanel">
+                    <div class="diagnosis-title">What The Scores Show</div>
+                    <div class="diagnosis-content" id="diagnosisContent">
+                        <span class="diagnosis-loading">Loading diagnosis...</span>
                     </div>
                 </div>
 
-                <!-- Side-by-Side Comparison -->
-                <div class="side-by-side-container" id="compareSection">
-                    <!-- Direct AI Panel -->
-                    <div class="comparison-panel direct-ai">
-                        <div class="panel-header">
-                            <span class="panel-title direct-ai">Direct AI</span>
-                            <span class="panel-badge">Claude API</span>
-                        </div>
-                        <div class="panel-content" id="directAiContent">
-                            <div class="loading"><div class="loading-spinner"></div><span>Waiting for analysis...</span></div>
-                        </div>
-                    </div>
-
-                    <!-- Koher Panel -->
-                    <div class="comparison-panel koher">
-                        <div class="panel-header">
-                            <span class="panel-title koher">Koher Architecture</span>
-                            <span class="panel-badge">3-Stage Pipeline</span>
-                        </div>
-                        <div class="panel-content" id="koherContent">
-                            <div class="koher-stage" id="koherStage1">
-                                <div class="stage-label">Stage 1: Qualification (DeBERTa)</div>
-                                <div id="koherStage1Content">Waiting...</div>
-                            </div>
-                            <div class="annotation">
-                                <div class="annotation-title">Why separate qualification?</div>
-                                <div class="annotation-text">DeBERTa reads language patterns and outputs confidence scores (0.0–1.0). No judgment yet — just signal extraction. This is auditable and reproducible.</div>
-                            </div>
-
-                            <div class="koher-stage" id="koherStage2">
-                                <div class="stage-label">Stage 2: Rules (Deterministic)</div>
-                                <div id="koherStage2Content">Waiting...</div>
-                            </div>
-                            <div class="annotation">
-                                <div class="annotation-title">Why deterministic rules?</div>
-                                <div class="annotation-text">Code handles judgment. Thresholds are explicit: >0.8 = SOLID, 0.5–0.8 = EXAMINE, <0.5 = ATTENTION. Same input always produces same output. No AI hallucination of criteria.</div>
-                            </div>
-
-                            <div class="koher-stage" id="koherStage3">
-                                <div class="stage-label">Stage 3: Language (Haiku)</div>
-                                <div id="koherStage3Content">Waiting...</div>
-                            </div>
-                            <div class="annotation">
-                                <div class="annotation-title">Why separate language generation?</div>
-                                <div class="annotation-text">Haiku narrates decisions already made. It cannot change the judgment — only explain it. The explanation is constrained by the rules, not invented by AI.</div>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Revision -->
+                <div class="revision-section">
+                    <button class="revision-btn" id="revisionBtn">Revise and Resubmit</button>
                 </div>
-
-                <!-- History Section -->
-                <div class="history-section" id="historySection">
-                    <div class="history-header">
-                        <div class="history-title">Previous Analyses</div>
-                        <div class="history-tabs">
-                            <button class="history-tab active" data-tab="koher">Koher</button>
-                            <button class="history-tab" data-tab="direct">Direct AI</button>
-                        </div>
-                    </div>
-                    <div id="historyContainer">
-                        <!-- History items injected here -->
-                    </div>
-                </div>
-
             </div>
-        </main>
-    </div>
+
+            <!-- Side-by-Side Comparison -->
+            <div class="side-by-side-container" id="compareSection">
+                <!-- Direct AI Panel -->
+                <div class="comparison-panel direct-ai">
+                    <div class="panel-header">
+                        <span class="panel-title direct-ai">Direct AI</span>
+                        <span class="panel-badge">Claude API</span>
+                    </div>
+                    <div class="panel-content" id="directAiContent">
+                        <div class="loading"><div class="loading-spinner"></div><span>Waiting for analysis...</span></div>
+                    </div>
+                </div>
+
+                <!-- Koher Panel -->
+                <div class="comparison-panel koher">
+                    <div class="panel-header">
+                        <span class="panel-title koher">Koher Architecture</span>
+                        <span class="panel-badge">3-Stage Pipeline</span>
+                    </div>
+                    <div class="panel-content" id="koherContent">
+                        <div class="koher-stage" id="koherStage1">
+                            <div class="stage-label">Stage 1: Qualification (DeBERTa)</div>
+                            <div id="koherStage1Content">Waiting...</div>
+                        </div>
+                        <div class="annotation">
+                            <div class="annotation-title">Why separate qualification?</div>
+                            <div class="annotation-text">DeBERTa reads language patterns and outputs confidence scores (0.0–1.0). No judgment yet — just signal extraction. This is auditable and reproducible.</div>
+                        </div>
+
+                        <div class="koher-stage" id="koherStage2">
+                            <div class="stage-label">Stage 2: Rules (Deterministic)</div>
+                            <div id="koherStage2Content">Waiting...</div>
+                        </div>
+                        <div class="annotation">
+                            <div class="annotation-title">Why deterministic rules?</div>
+                            <div class="annotation-text">Code handles judgment. Thresholds are explicit: >0.8 = SOLID, 0.5–0.8 = EXAMINE, <0.5 = ATTENTION. Same input always produces same output. No AI hallucination of criteria.</div>
+                        </div>
+
+                        <div class="koher-stage" id="koherStage3">
+                            <div class="stage-label">Stage 3: Language (Haiku)</div>
+                            <div id="koherStage3Content">Waiting...</div>
+                        </div>
+                        <div class="annotation">
+                            <div class="annotation-title">Why separate language generation?</div>
+                            <div class="annotation-text">Haiku narrates decisions already made. It cannot change the judgment — only explain it. The explanation is constrained by the rules, not invented by AI.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Section -->
+            <div class="history-section" id="historySection">
+                <div class="history-header">
+                    <div class="history-title">Previous Analyses</div>
+                    <div class="history-tabs">
+                        <button class="history-tab active" data-tab="koher">Koher</button>
+                        <button class="history-tab" data-tab="direct">Direct AI</button>
+                    </div>
+                </div>
+                <div id="historyContainer">
+                    <!-- History items injected here -->
+                </div>
+            </div>
+
+        </div>
+    </main>
 
     <footer>
         <p><a href="https://koher.app">koher.app</a></p>
@@ -1105,8 +906,6 @@
         let currentMode = 'koher'; // 'koher', 'direct', 'compare'
         let currentHistoryTab = 'koher';
         let sampleConcepts = null;
-        let remainingAnalyses = null;
-        let userName = null;
 
         // DOM Elements
         const conceptInput = document.getElementById('conceptInput');
@@ -1126,34 +925,9 @@
         const koherStage3Content = document.getElementById('koherStage3Content');
         const modeButtons = document.querySelectorAll('.mode-btn');
         const sampleBtn = document.getElementById('sampleBtn');
-        const logoutLink = document.getElementById('logoutLink');
-        const headerUser = document.getElementById('headerUser');
-        const headerRemaining = document.getElementById('headerRemaining');
-
-        // Screen elements
-        const screenRegister = document.getElementById('screenRegister');
-        const screenCheckEmail = document.getElementById('screenCheckEmail');
-        const screenWaitlist = document.getElementById('screenWaitlist');
-        const screenExhausted = document.getElementById('screenExhausted');
-        const screenTool = document.getElementById('screenTool');
-
-        // Registration elements
-        const regName = document.getElementById('regName');
-        const regEmail = document.getElementById('regEmail');
-        const regError = document.getElementById('regError');
-        const regSubmit = document.getElementById('regSubmit');
-
-        // Show a screen, hide all others
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
-        }
 
         // Initialise
-        async function init() {
-            // Check auth status
-            await checkAuthStatus();
-
+        function init() {
             // Load Koher history
             const storedKoherHistory = localStorage.getItem(HISTORY_KEY);
             if (storedKoherHistory) {
@@ -1177,11 +951,6 @@
             renderHistory();
 
             // Event listeners
-            regSubmit.addEventListener('click', submitRegistration);
-            regEmail.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') submitRegistration();
-            });
-
             conceptInput.addEventListener('input', updateCharCount);
             analyseBtn.addEventListener('click', analyse);
             revisionBtn.addEventListener('click', startRevision);
@@ -1194,9 +963,6 @@
             // Sample concepts
             sampleBtn.addEventListener('click', loadSampleConcept);
 
-            // Logout
-            logoutLink.addEventListener('click', logout);
-
             // History tabs
             document.querySelectorAll('.history-tab').forEach(tab => {
                 tab.addEventListener('click', () => switchHistoryTab(tab.dataset.tab));
@@ -1204,85 +970,6 @@
 
             // Pre-fetch sample concepts
             fetchSampleConcepts();
-        }
-
-        // Check authentication status
-        async function checkAuthStatus() {
-            try {
-                const response = await fetch(`${API_BASE}/auth/status`, {
-                    credentials: 'same-origin'
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-
-                    if (data.authenticated) {
-                        userName = data.name;
-                        updateRemainingAnalyses(data.remaining_analyses);
-
-                        if (data.limit_reached) {
-                            showScreen('screenExhausted');
-                        } else {
-                            showScreen('screenTool');
-                            logoutLink.style.display = 'inline';
-                            headerUser.style.display = 'inline';
-                        }
-                    } else {
-                        showScreen('screenRegister');
-                    }
-                } else {
-                    showScreen('screenRegister');
-                }
-            } catch (e) {
-                console.log('Could not check auth status');
-                showScreen('screenRegister');
-            }
-        }
-
-        // Submit registration
-        async function submitRegistration() {
-            const name = regName.value.trim();
-            const email = regEmail.value.trim();
-
-            if (!name) {
-                regError.textContent = 'Please enter your name';
-                regError.classList.add('visible');
-                return;
-            }
-
-            if (!email || !email.includes('@')) {
-                regError.textContent = 'Please enter a valid email address';
-                regError.classList.add('visible');
-                return;
-            }
-
-            regError.classList.remove('visible');
-            regSubmit.disabled = true;
-            regSubmit.textContent = 'Sending...';
-
-            try {
-                const response = await fetch(`${API_BASE}/auth/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email })
-                });
-
-                const data = await response.json();
-
-                if (data.status === 'waitlisted') {
-                    showScreen('screenWaitlist');
-                } else {
-                    // created, existing_verified, or existing_unverified — all show check-email
-                    document.getElementById('checkEmailAddr').textContent = email;
-                    showScreen('screenCheckEmail');
-                }
-            } catch (e) {
-                regError.textContent = 'Connection error. Please try again.';
-                regError.classList.add('visible');
-            }
-
-            regSubmit.disabled = false;
-            regSubmit.textContent = 'Send Verification Link';
         }
 
         // History tab switching
@@ -1344,45 +1031,11 @@
             conceptInput.focus();
         }
 
-        // Logout
-        async function logout(e) {
-            e.preventDefault();
-            try {
-                await fetch(`${API_BASE}/auth/logout`, { credentials: 'same-origin' });
-            } catch (e) {
-                // ignore
-            }
-            logoutLink.style.display = 'none';
-            headerUser.style.display = 'none';
-            userName = null;
-            remainingAnalyses = null;
-            showScreen('screenRegister');
-        }
-
         // Character count
         function updateCharCount() {
             const count = conceptInput.value.length;
             charCount.textContent = count;
-            analyseBtn.disabled = count < 20 || remainingAnalyses === 0;
-        }
-
-        // Update remaining analyses counter
-        function updateRemainingAnalyses(count) {
-            if (count === null || count === undefined) return;
-
-            remainingAnalyses = count;
-            headerRemaining.textContent = count;
-            headerUser.style.display = 'inline';
-
-            // Update styling based on remaining count
-            headerUser.classList.remove('warning', 'depleted');
-            if (count === 0) {
-                headerUser.classList.add('depleted');
-                analyseBtn.disabled = true;
-                analyseBtn.textContent = 'Limit Reached';
-            } else if (count <= 3) {
-                headerUser.classList.add('warning');
-            }
+            analyseBtn.disabled = count < 20;
         }
 
         // Main analysis - handles all modes
@@ -1413,22 +1066,11 @@
                 const response = await fetch(`${API_BASE}/analyse/stream`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    credentials: 'same-origin',
                     body: JSON.stringify({
                         concept: concept,
                         include_diagnosis: true
                     })
                 });
-
-                if (response.status === 401) {
-                    handleAuthError();
-                    return;
-                }
-
-                if (response.status === 403) {
-                    handleLimitReached();
-                    return;
-                }
 
                 if (!response.ok) {
                     throw new Error('Analysis failed');
@@ -1473,9 +1115,6 @@
                                 if (parsed.type === 'scores') {
                                     scoresData = parsed.data;
                                     renderScores(scoresData.scores);
-                                    if (scoresData.remaining_analyses !== undefined) {
-                                        updateRemainingAnalyses(scoresData.remaining_analyses);
-                                    }
                                 } else if (parsed.text) {
                                     if (!streamStarted) streamStarted = true;
                                     diagnosisText += parsed.text;
@@ -1518,31 +1157,16 @@
                 const response = await fetch(`${API_BASE}/analyse/direct`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    credentials: 'same-origin',
                     body: JSON.stringify({ concept: concept })
                 });
 
                 clearTimeout(timeoutId);
-
-                if (response.status === 401) {
-                    handleAuthError();
-                    return;
-                }
-
-                if (response.status === 403) {
-                    handleLimitReached();
-                    return;
-                }
 
                 if (!response.ok) {
                     throw new Error('Direct analysis failed');
                 }
 
                 const data = await response.json();
-
-                if (data.remaining_analyses !== undefined) {
-                    updateRemainingAnalyses(data.remaining_analyses);
-                }
 
                 diagnosisContent.innerHTML = formatDirectAiResponse(data.response);
                 addToDirectHistory(concept, data.response);
@@ -1582,17 +1206,11 @@
             if (directResult.status === 'fulfilled') {
                 clearTimeout(directTimeoutId);
                 directAiContent.innerHTML = formatDirectAiResponse(directResult.value.response);
-                if (directResult.value.remaining_analyses !== undefined) {
-                    updateRemainingAnalyses(directResult.value.remaining_analyses);
-                }
             }
 
             if (koherResult.status === 'fulfilled') {
                 clearTimeout(koherTimeoutId);
                 const data = koherResult.value;
-                if (data.remaining_analyses !== undefined) {
-                    updateRemainingAnalyses(data.remaining_analyses);
-                }
 
                 const scoresHtml = data.scores.map(s => {
                     return `<div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px;">
@@ -1624,19 +1242,8 @@
             const response = await fetch(`${API_BASE}/analyse/direct`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
                 body: JSON.stringify({ concept })
             });
-
-            if (response.status === 401) {
-                handleAuthError();
-                throw new Error('Authentication required');
-            }
-
-            if (response.status === 403) {
-                handleLimitReached();
-                throw new Error('Limit reached');
-            }
 
             if (!response.ok) throw new Error('Direct AI failed');
             return await response.json();
@@ -1646,19 +1253,8 @@
             const response = await fetch(`${API_BASE}/analyse`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
                 body: JSON.stringify({ concept, include_diagnosis: true })
             });
-
-            if (response.status === 401) {
-                handleAuthError();
-                throw new Error('Authentication required');
-            }
-
-            if (response.status === 403) {
-                handleLimitReached();
-                throw new Error('Limit reached');
-            }
 
             if (!response.ok) throw new Error('Koher analysis failed');
             return await response.json();
@@ -1674,21 +1270,6 @@
                 .replace(/(CLAIM|EVIDENCE|SCOPE|ASSUMPTIONS|GAPS):/gi, '<strong style="color: var(--color-highlight);">$1:</strong>')
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/- (Strong|Unclear|Weak|Missing)/gi, '&bull; <span style="font-weight: 500;">$1</span>');
-        }
-
-        // Handle auth errors
-        function handleAuthError() {
-            logoutLink.style.display = 'none';
-            headerUser.style.display = 'none';
-            showScreen('screenRegister');
-            analyseBtn.disabled = false;
-            analyseBtn.textContent = currentMode === 'compare' ? 'Compare' : 'Analyse';
-        }
-
-        // Handle limit reached
-        function handleLimitReached() {
-            updateRemainingAnalyses(0);
-            showScreen('screenExhausted');
         }
 
         // Render scores

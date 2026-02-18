@@ -32,7 +32,7 @@
             --font-ui: 'IBM Plex Sans', sans-serif;
             --font-mono: 'IBM Plex Mono', monospace;
 
-            --content-width: 800px;
+            --content-width: 900px;
         }
 
         * {
@@ -205,7 +205,7 @@
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 16px;
             margin-bottom: 48px;
         }
@@ -219,14 +219,14 @@
 
         .stat-value {
             font-family: var(--font-display);
-            font-size: 36px;
+            font-size: 32px;
             font-weight: 600;
             color: var(--color-highlight);
         }
 
         .stat-label {
             font-family: var(--font-ui);
-            font-size: 13px;
+            font-size: 12px;
             color: var(--color-muted-on-dark);
             text-transform: uppercase;
             letter-spacing: 0.1em;
@@ -253,21 +253,6 @@
             color: var(--color-muted-on-dark);
         }
 
-        /* Create User */
-        .create-user-form {
-            background: var(--color-bg-card);
-            border-radius: 12px;
-            padding: 24px;
-            display: flex;
-            gap: 16px;
-            align-items: flex-end;
-            flex-wrap: wrap;
-        }
-
-        .create-user-form .form-group {
-            margin-bottom: 0;
-        }
-
         /* Users Table */
         .users-table {
             width: 100%;
@@ -279,7 +264,7 @@
 
         .users-table th,
         .users-table td {
-            padding: 16px;
+            padding: 14px 16px;
             text-align: left;
             border-bottom: 1px solid var(--color-border-dark);
         }
@@ -303,13 +288,23 @@
             border-bottom: none;
         }
 
-        .users-table .password-cell {
-            color: var(--color-highlight);
-            cursor: pointer;
+        .status-badge {
+            font-family: var(--font-ui);
+            font-size: 12px;
+            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: 12px;
+            display: inline-block;
         }
 
-        .users-table .password-cell:hover {
-            text-decoration: underline;
+        .status-badge.verified {
+            background: rgba(95, 179, 179, 0.15);
+            color: var(--color-solid);
+        }
+
+        .status-badge.pending {
+            background: rgba(224, 164, 88, 0.15);
+            color: #e0a458;
         }
 
         .usage-bar {
@@ -319,7 +314,7 @@
         }
 
         .usage-bar-track {
-            width: 100px;
+            width: 80px;
             height: 8px;
             background: var(--color-bg-dark);
             border-radius: 4px;
@@ -365,41 +360,6 @@
             display: none;
         }
 
-        /* New Password Display */
-        .new-password-display {
-            background: var(--color-bg-dark);
-            border: 2px solid var(--color-highlight);
-            border-radius: 8px;
-            padding: 24px;
-            text-align: center;
-            margin-top: 24px;
-        }
-
-        .new-password-display.hidden {
-            display: none;
-        }
-
-        .new-password-label {
-            font-family: var(--font-ui);
-            font-size: 13px;
-            color: var(--color-muted-on-dark);
-            margin-bottom: 8px;
-        }
-
-        .new-password-value {
-            font-family: var(--font-mono);
-            font-size: 24px;
-            color: var(--color-highlight);
-            letter-spacing: 0.05em;
-            margin-bottom: 12px;
-        }
-
-        .copy-hint {
-            font-family: var(--font-ui);
-            font-size: 12px;
-            color: var(--color-muted-on-dark);
-        }
-
         /* Loading */
         .loading {
             text-align: center;
@@ -420,6 +380,13 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        .empty-state {
+            color: var(--color-muted-on-dark);
+            font-size: 14px;
+            padding: 24px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -433,14 +400,14 @@
                 </svg>
                 <span>ADMIN</span>
             </a>
-            <a href="/" class="header-back">← Back to tool</a>
+            <a href="/" class="header-back">&larr; Back to tool</a>
         </div>
     </header>
 
     <main>
         <div class="container">
             <h1>User Management</h1>
-            <p class="intro">Create access passwords and monitor usage.</p>
+            <p class="intro">Monitor registered users, verification status, and usage.</p>
 
             <!-- Login Section -->
             <div class="login-section" id="loginSection">
@@ -463,35 +430,24 @@
                         <div class="stat-label">Total Users</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value" id="statActiveUsers">-</div>
-                        <div class="stat-label">Active Users</div>
+                        <div class="stat-value" id="statVerified">-</div>
+                        <div class="stat-label">Verified</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTodaySignups">-</div>
+                        <div class="stat-label">Signups Today</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="statTotalAnalyses">-</div>
-                        <div class="stat-label">Total Analyses</div>
+                        <div class="stat-label">Analyses</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value" id="statTodaySlots">-</div>
-                        <div class="stat-label">Slots Today</div>
+                        <div class="stat-value" id="statExhausted">-</div>
+                        <div class="stat-label">Exhausted</div>
                     </div>
-                </div>
-
-                <!-- Create User Section -->
-                <div class="section">
-                    <div class="section-header">
-                        <span class="section-title">Create New User</span>
-                    </div>
-                    <div class="create-user-form">
-                        <div class="form-group">
-                            <label class="form-label">Recipient (optional)</label>
-                            <input type="text" class="form-input" id="newUserEmail" placeholder="Name or email for your records">
-                        </div>
-                        <button class="btn" onclick="createUser()">Create User</button>
-                    </div>
-                    <div class="new-password-display hidden" id="newPasswordDisplay">
-                        <div class="new-password-label">New user password (click to copy):</div>
-                        <div class="new-password-value" id="newPasswordValue" onclick="copyPassword()"></div>
-                        <div class="copy-hint">Send this password to the user</div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statWaitlist">-</div>
+                        <div class="stat-label">Waitlist</div>
                     </div>
                 </div>
 
@@ -499,9 +455,21 @@
                 <div class="section">
                     <div class="section-header">
                         <span class="section-title">All Users</span>
-                        <button class="btn btn-secondary" onclick="refreshUsers()">Refresh</button>
+                        <button class="btn btn-secondary" onclick="refreshAll()">Refresh</button>
                     </div>
                     <div id="usersTableContainer">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Waitlist -->
+                <div class="section">
+                    <div class="section-header">
+                        <span class="section-title">Waitlist</span>
+                    </div>
+                    <div id="waitlistContainer">
                         <div class="loading">
                             <div class="spinner"></div>
                         </div>
@@ -537,6 +505,7 @@
                     document.getElementById('adminPanel').classList.add('active');
                     loadStats();
                     loadUsers();
+                    loadWaitlist();
                 } else {
                     loginError.textContent = 'Invalid admin password';
                     loginError.classList.remove('hidden');
@@ -553,9 +522,11 @@
                 if (response.ok) {
                     const data = await response.json();
                     document.getElementById('statTotalUsers').textContent = data.totals.total_users;
-                    document.getElementById('statActiveUsers').textContent = data.totals.active_users;
+                    document.getElementById('statVerified').textContent = data.totals.verified_users;
+                    document.getElementById('statTodaySignups').textContent = `${data.daily.users_created_today}/${data.totals.max_new_users_per_day}`;
                     document.getElementById('statTotalAnalyses').textContent = data.totals.total_analyses;
-                    document.getElementById('statTodaySlots').textContent = `${data.daily.remaining_slots}/${data.totals.max_new_users_per_day}`;
+                    document.getElementById('statExhausted').textContent = data.totals.exhausted_users;
+                    document.getElementById('statWaitlist').textContent = data.totals.waitlist_count;
                 }
             } catch (error) {
                 console.error('Failed to load stats:', error);
@@ -582,7 +553,7 @@
             const container = document.getElementById('usersTableContainer');
 
             if (users.length === 0) {
-                container.innerHTML = '<p style="color: var(--color-muted-on-dark);">No users created yet.</p>';
+                container.innerHTML = '<p class="empty-state">No users registered yet.</p>';
                 return;
             }
 
@@ -599,10 +570,15 @@
                     year: 'numeric'
                 });
 
+                const statusBadge = user.verified
+                    ? '<span class="status-badge verified">Verified</span>'
+                    : '<span class="status-badge pending">Pending</span>';
+
                 return `
                     <tr>
-                        <td class="password-cell" onclick="copyToClipboard('${user.password}')" title="Click to copy">${user.password}</td>
-                        <td>${user.email || '—'}</td>
+                        <td style="font-family: var(--font-ui);">${user.name}</td>
+                        <td>${user.email}</td>
+                        <td>${statusBadge}</td>
                         <td>${createdDate}</td>
                         <td>
                             <div class="usage-bar">
@@ -620,9 +596,10 @@
                 <table class="users-table">
                     <thead>
                         <tr>
-                            <th>Password</th>
-                            <th>Recipient</th>
-                            <th>Created</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Joined</th>
                             <th>Usage</th>
                         </tr>
                     </thead>
@@ -633,62 +610,66 @@
             `;
         }
 
-        async function createUser() {
-            const email = document.getElementById('newUserEmail').value || null;
-            const statusMessage = document.getElementById('statusMessage');
-            const passwordDisplay = document.getElementById('newPasswordDisplay');
-
-            statusMessage.classList.add('hidden');
-            passwordDisplay.classList.add('hidden');
+        async function loadWaitlist() {
+            const container = document.getElementById('waitlistContainer');
 
             try {
-                const response = await fetch('/admin/create-user', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        admin_password: adminPassword,
-                        email: email
-                    })
-                });
-
-                const data = await response.json();
-
+                const response = await fetch(`/admin/waitlist?admin_password=${encodeURIComponent(adminPassword)}`);
                 if (response.ok) {
-                    document.getElementById('newPasswordValue').textContent = data.user.password;
-                    passwordDisplay.classList.remove('hidden');
-                    document.getElementById('newUserEmail').value = '';
-                    loadStats();
-                    loadUsers();
+                    const data = await response.json();
+                    renderWaitlist(data.waitlist);
                 } else {
-                    statusMessage.textContent = data.detail || 'Failed to create user';
-                    statusMessage.className = 'message error';
-                    statusMessage.classList.remove('hidden');
+                    container.innerHTML = '<p style="color: var(--color-attention);">Failed to load waitlist</p>';
                 }
             } catch (error) {
-                statusMessage.textContent = 'Connection error. Please try again.';
-                statusMessage.className = 'message error';
-                statusMessage.classList.remove('hidden');
+                container.innerHTML = '<p style="color: var(--color-attention);">Connection error</p>';
             }
         }
 
-        function copyPassword() {
-            const password = document.getElementById('newPasswordValue').textContent;
-            copyToClipboard(password);
+        function renderWaitlist(entries) {
+            const container = document.getElementById('waitlistContainer');
+
+            if (entries.length === 0) {
+                container.innerHTML = '<p class="empty-state">No one on the waitlist.</p>';
+                return;
+            }
+
+            const rows = entries.map(entry => {
+                const createdDate = new Date(entry.created_at).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                });
+
+                return `
+                    <tr>
+                        <td style="font-family: var(--font-ui);">${entry.name}</td>
+                        <td>${entry.email}</td>
+                        <td>${createdDate}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Added</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            `;
         }
 
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                const statusMessage = document.getElementById('statusMessage');
-                statusMessage.textContent = `Password copied: ${text}`;
-                statusMessage.className = 'message success';
-                statusMessage.classList.remove('hidden');
-                setTimeout(() => statusMessage.classList.add('hidden'), 3000);
-            });
-        }
-
-        function refreshUsers() {
+        function refreshAll() {
             loadStats();
             loadUsers();
+            loadWaitlist();
         }
 
         // Allow Enter key to login

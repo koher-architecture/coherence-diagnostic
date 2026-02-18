@@ -39,6 +39,7 @@ Thumbs.db
 # Environment
 .env
 .env.local
+config.env
 
 # Deployment artifacts
 *.tar
@@ -59,3 +60,9 @@ data/
 
 # Local commit tracking
 COMMIT-STATUS.md
+
+# Personal/local files (not part of the tool)
+anant-*.md
+anant-*.pdf
+faculty-position.*
+whatsapp-share.txt

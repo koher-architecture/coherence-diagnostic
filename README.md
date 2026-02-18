@@ -6,21 +6,16 @@ Analyse design concepts for coherence. See what's strong, thin, or unclear.
 
 ---
 
-## 🚀 Get Started
+## Quick Start
 
-### Try It Online
-
-**[→ Launch Coherence Diagnostic](https://coherence-demo.koher.app)**
-
-Hosted instance available by invitation. [Request access](mailto:hello@koher.app?subject=Coherence%20Diagnostic%20Access%20Request&body=I%27d%20like%20to%20try%20the%20Coherence%20Diagnostic%20tool.)
-
-### Run Locally
+### Run Locally (Open Access Mode)
 
 ```bash
 git clone https://github.com/koher-architecture/coherence-diagnostic.git
 cd coherence-diagnostic
 pip install -r backend/requirements.txt
-export OPENROUTER_API_KEY="your-key-here"
+cp config.env.example config.env
+# Edit config.env: add your OPENROUTER_API_KEY
 uvicorn backend.main:app --reload
 # Open http://localhost:8000
 ```
@@ -45,6 +40,142 @@ Each dimension receives one of three states:
 - **● Solid** — clearly present
 - **◐ Worth examining** — something there, but vague
 - **○ Needs attention** — absent or unclear
+
+---
+
+## Configuration
+
+All configuration is managed through `config.env` (copy from `config.env.example`).
+
+### Feature Toggle
+
+| Setting | Values | Default | Description |
+|---------|--------|---------|-------------|
+| `ENABLE_AUTH` | `0` / `1` | `0` | Gated access: email verification + admin panel |
+
+### Deployment Modes
+
+#### Open Access (Default)
+
+Anyone can use the tool. No registration required.
+
+```env
+ENABLE_AUTH=0
+OPENROUTER_API_KEY=your_key
+```
+
+#### Gated Access
+
+Users must verify email. Usage limits apply. Admin panel at `/admin`.
+
+```env
+ENABLE_AUTH=1
+OPENROUTER_API_KEY=your_key
+SESSION_SECRET=your_64_char_secret
+ADMIN_PASSWORD=your_admin_password
+MAX_ANALYSES_PER_USER=10
+MAX_NEW_USERS_PER_DAY=10
+```
+
+### Environment Variables
+
+#### Required (Always)
+
+| Variable | Description |
+|----------|-------------|
+| `OPENROUTER_API_KEY` | For Stage 3 diagnosis (Claude Haiku via OpenRouter) |
+
+#### Required (if ENABLE_AUTH=1)
+
+| Variable | Description |
+|----------|-------------|
+| `SESSION_SECRET` | 64-character secret for signing session cookies |
+| `ADMIN_PASSWORD` | Password for accessing `/admin` panel |
+| `BASE_URL` | Base URL for verification emails (e.g., `https://yoursite.com`) |
+
+#### Optional (if ENABLE_AUTH=1)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MAX_ANALYSES_PER_USER` | `10` | Analyses per user account |
+| `MAX_NEW_USERS_PER_DAY` | `10` | New signups per day |
+| `SMTP_HOST` | — | SMTP server for verification emails |
+| `SMTP_PORT` | `587` | SMTP port (usually 587 for TLS) |
+| `SMTP_USERNAME` | — | SMTP username or API key |
+| `SMTP_PASSWORD` | — | SMTP password or API key |
+| `SMTP_FROM_EMAIL` | `noreply@example.com` | Sender email address |
+| `SMTP_FROM_NAME` | `Coherence Diagnostic` | Sender display name |
+
+**Note:** If SMTP is not configured, verification links are printed to console (useful for development).
+
+**SMTP Provider Examples:**
+- **SendGrid:** `SMTP_HOST=smtp.sendgrid.net`, `SMTP_USERNAME=apikey`, `SMTP_PASSWORD=your_api_key`
+- **Mailgun:** `SMTP_HOST=smtp.mailgun.org`, use your Mailgun credentials
+- **AWS SES:** `SMTP_HOST=email-smtp.{region}.amazonaws.com`, use IAM SMTP credentials
+- **Postmark:** `SMTP_HOST=smtp.postmarkapp.com`, use your server API token
+- **Gmail:** `SMTP_HOST=smtp.gmail.com`, use an app password (not your regular password)
+
+---
+
+## File Structure
+
+```
+coherence-diagnostic/
+├── README.md                     # This file
+├── LICENSE                       # MIT
+├── config.py                     # Configuration loader (feature flags, validation)
+├── config.env.example            # Configuration template
+├── Dockerfile                    # Container build
+├── entrypoint.sh                 # Downloads model on first deploy, starts server
+├── backend/
+│   ├── main.py                   # FastAPI server (conditionally loads auth/admin)
+│   ├── auth.py                   # Auth module (email verification, sessions, limits)
+│   ├── admin.py                  # Admin module (user listing, stats)
+│   └── requirements.txt          # Python dependencies
+├── frontend/
+│   ├── index.html                # Full frontend (with auth screens)
+│   ├── index-open.html           # Open access frontend (no auth)
+│   └── admin.html                # Admin panel
+├── src/
+│   └── stage2_rules.py           # Deterministic judgment rules
+└── models/
+    └── deberta-coherence/        # Trained DeBERTa model (~738MB)
+        ├── model.safetensors
+        ├── config.json
+        └── ...
+```
+
+---
+
+## Module Architecture
+
+The tool is separated into three modules that load conditionally:
+
+### Core Tool (`backend/main.py`)
+
+Always loaded. Contains:
+- FastAPI application setup
+- DeBERTa model loading
+- `/analyse`, `/analyse/stream`, `/analyse/direct` endpoints
+- `/samples`, `/health` endpoints
+- Frontend serving
+
+### Auth Module (`backend/auth.py`)
+
+Only loaded if `ENABLE_AUTH=1`. Contains:
+- Email verification flow (`/auth/register`, `/auth/verify/{token}`)
+- Session cookie management (`/auth/status`, `/auth/logout`)
+- User registration and limits
+- Database initialisation (SQLite)
+
+### Admin Module (`backend/admin.py`)
+
+Only loaded if `ENABLE_AUTH=1`. Contains:
+- Admin authentication (`/admin/login`)
+- User listing (`/admin/users`)
+- Waitlist management (`/admin/waitlist`)
+- Usage statistics (`/admin/stats`)
+- Admin panel serving (`/admin`)
 
 ---
 
@@ -107,8 +238,9 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 # Install dependencies
 pip install -r backend/requirements.txt
 
-# Set your OpenRouter API key
-export OPENROUTER_API_KEY="your-key-here"
+# Create configuration
+cp config.env.example config.env
+# Edit config.env with your settings
 
 # Run the server
 uvicorn backend.main:app --reload
@@ -116,24 +248,25 @@ uvicorn backend.main:app --reload
 
 Open `http://localhost:8000` in your browser.
 
-### Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `OPENROUTER_API_KEY` | Yes | For Stage 3 diagnosis (Claude Haiku via OpenRouter) |
-| `ADMIN_PASSWORD` | No | Password protection (default: none) |
-| `SESSION_SECRET` | No | For signed cookies |
-
 ### Docker
 
 ```bash
 # Build
 docker build -t coherence-diagnostic .
 
-# Run (with persistent volumes for model and data)
+# Run (open access mode)
 docker run -p 8000:8000 \
   -e OPENROUTER_API_KEY=your_key \
-  -e ADMIN_PASSWORD=your_password \
+  -v coherence-models:/app/models \
+  coherence-diagnostic
+
+# Run (gated access mode)
+docker run -p 8000:8000 \
+  -e ENABLE_AUTH=1 \
+  -e OPENROUTER_API_KEY=your_key \
+  -e SESSION_SECRET=your_64_char_secret \
+  -e ADMIN_PASSWORD=your_admin_password \
+  -e BASE_URL=https://yoursite.com \
   -v coherence-models:/app/models \
   -v coherence-data:/app/data \
   coherence-diagnostic
@@ -141,29 +274,29 @@ docker run -p 8000:8000 \
 
 **Note:** The DeBERTa model (~750MB) downloads automatically on first deploy. It persists in the `/app/models` volume — subsequent container restarts use the cached model.
 
----
+### Docker Compose
 
-## File Structure
+```yaml
+version: '3.8'
+services:
+  coherence:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      # Uncomment for gated access:
+      # - ENABLE_AUTH=1
+      # - SESSION_SECRET=${SESSION_SECRET}
+      # - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      # - BASE_URL=https://yoursite.com
+    volumes:
+      - coherence-models:/app/models
+      - coherence-data:/app/data
 
-```
-coherence-diagnostic/
-├── README.md                     # This file
-├── LICENSE                       # MIT
-├── Dockerfile                    # Container build
-├── entrypoint.sh                 # Downloads model on first deploy, then starts server
-├── captain-definition            # CapRover deployment config
-├── backend/
-│   ├── main.py                   # FastAPI server (OpenRouter for Stage 3)
-│   └── requirements.txt          # Python dependencies
-├── frontend/
-│   └── index.html                # Single-page application
-├── src/
-│   └── stage2_rules.py           # Deterministic judgment rules
-└── models/
-    └── deberta-coherence/        # Trained DeBERTa model (~738MB)
-        ├── model.safetensors
-        ├── config.json
-        └── ...
+volumes:
+  coherence-models:
+  coherence-data:
 ```
 
 ---
@@ -204,7 +337,9 @@ Gaps are logical jumps — places where reasoning skips steps between problem an
 
 ## API Endpoints
 
-### `POST /analyse`
+### Core Endpoints
+
+#### `POST /analyse`
 
 Analyse a design concept and return scores with diagnosis.
 
@@ -229,9 +364,32 @@ Analyse a design concept and return scores with diagnosis.
 }
 ```
 
-### `POST /analyse/stream`
+#### `POST /analyse/stream`
 
 Same as above, but streams the diagnosis via Server-Sent Events.
+
+#### `POST /analyse/direct`
+
+Direct AI analysis (bypasses Koher architecture for comparison).
+
+### Auth Endpoints (if ENABLE_AUTH=1)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/auth/register` | POST | Register user, send verification email |
+| `/auth/verify/{token}` | GET | Verify email via magic link |
+| `/auth/status` | GET | Check authentication status |
+| `/auth/logout` | GET | Clear session cookie |
+
+### Admin Endpoints (if ENABLE_AUTH=1)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/admin` | GET | Serve admin panel |
+| `/admin/login` | POST | Verify admin password |
+| `/admin/users` | GET | List all users |
+| `/admin/waitlist` | GET | List waitlist entries |
+| `/admin/stats` | GET | Usage statistics |
 
 ---
 

@@ -7,247 +7,48 @@ Three-stage pipeline:
 3. Haiku: Translates severity → plain language diagnosis
 
 Architecture: AI handles language. Code handles judgment.
+
+Module Structure:
+- main.py: Core analysis pipeline (this file)
+- auth.py: Email verification, user management (loaded if ENABLE_AUTH=1)
+- admin.py: Admin panel (loaded if ENABLE_AUTH=1)
+
+Feature toggle via config.py / config.env:
+- ENABLE_AUTH=0: Open access — anyone can use the tool
+- ENABLE_AUTH=1: Gated access — email verification + admin panel
 """
 
-import os
-import sys
 import json
 import asyncio
-import sqlite3
-import secrets
-import string
-from datetime import datetime, date
+import random
 from pathlib import Path
-from dotenv import load_dotenv
-
-# Load .env file from project root
-load_dotenv(Path(__file__).parent.parent / ".env")
-from typing import Optional
 from contextlib import asynccontextmanager
+from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse, FileResponse, HTMLResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel, Field
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import openai
 
-# Add parent directory to path for stage2_rules import
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from config import (
+    ENABLE_AUTH,
+    OPENROUTER_API_KEY, MODEL_PATH,
+    validate_config, print_config_summary
+)
+
+# Add src directory to path for stage2_rules import
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-from stage2_rules import evaluate_concept, format_severity_display, Severity
+from stage2_rules import evaluate_concept, Severity
 
 
 # =============================================================================
-# Configuration
+# Prompts
 # =============================================================================
-
-MODEL_PATH = Path(__file__).parent.parent / "models" / "deberta-coherence"
-DB_PATH = Path(__file__).parent.parent / "data" / "users.db"
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
-if not ADMIN_PASSWORD:
-    raise RuntimeError("ADMIN_PASSWORD environment variable is required")
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
-
-# Limits
-MAX_ANALYSES_PER_USER = 10
-MAX_NEW_USERS_PER_DAY = 10
-
-
-# =============================================================================
-# Database Management
-# =============================================================================
-
-def init_database():
-    """Initialise SQLite database for user management."""
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-
-    conn = sqlite3.connect(str(DB_PATH))
-    cursor = conn.cursor()
-
-    # Users table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            password TEXT PRIMARY KEY,
-            email TEXT,
-            created_at TEXT NOT NULL,
-            usage_count INTEGER DEFAULT 0
-        )
-    """)
-
-    # Daily stats table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS daily_stats (
-            date TEXT PRIMARY KEY,
-            users_created INTEGER DEFAULT 0
-        )
-    """)
-
-    conn.commit()
-    conn.close()
-
-
-def get_db_connection():
-    """Get database connection."""
-    return sqlite3.connect(str(DB_PATH))
-
-
-def generate_password(length: int = 12) -> str:
-    """Generate a random password."""
-    chars = string.ascii_letters + string.digits
-    return ''.join(secrets.choice(chars) for _ in range(length))
-
-
-def create_user(email: str = None) -> dict:
-    """
-    Create a new user with a unique password.
-    Returns user info or raises exception if daily limit reached.
-    """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    today = date.today().isoformat()
-
-    # Check daily limit
-    cursor.execute("SELECT users_created FROM daily_stats WHERE date = ?", (today,))
-    row = cursor.fetchone()
-    users_today = row[0] if row else 0
-
-    if users_today >= MAX_NEW_USERS_PER_DAY:
-        conn.close()
-        raise HTTPException(
-            status_code=429,
-            detail=f"Daily limit reached. Maximum {MAX_NEW_USERS_PER_DAY} new users per day."
-        )
-
-    # Generate unique password
-    password = generate_password()
-    while True:
-        cursor.execute("SELECT 1 FROM users WHERE password = ?", (password,))
-        if not cursor.fetchone():
-            break
-        password = generate_password()
-
-    # Create user
-    now = datetime.now().isoformat()
-    cursor.execute(
-        "INSERT INTO users (password, email, created_at, usage_count) VALUES (?, ?, ?, 0)",
-        (password, email, now)
-    )
-
-    # Update daily stats
-    cursor.execute("""
-        INSERT INTO daily_stats (date, users_created) VALUES (?, 1)
-        ON CONFLICT(date) DO UPDATE SET users_created = users_created + 1
-    """, (today,))
-
-    conn.commit()
-    conn.close()
-
-    return {
-        "password": password,
-        "email": email,
-        "created_at": now,
-        "remaining_analyses": MAX_ANALYSES_PER_USER
-    }
-
-
-def verify_user(password: str) -> dict:
-    """
-    Verify user password and return user info.
-    Returns None if invalid, raises 403 if limit reached.
-    """
-    if not password:
-        return None
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        "SELECT password, email, created_at, usage_count FROM users WHERE password = ?",
-        (password,)
-    )
-    row = cursor.fetchone()
-    conn.close()
-
-    if not row:
-        return None
-
-    usage_count = row[3]
-    remaining = MAX_ANALYSES_PER_USER - usage_count
-
-    return {
-        "password": row[0],
-        "email": row[1],
-        "created_at": row[2],
-        "usage_count": usage_count,
-        "remaining_analyses": remaining,
-        "limit_reached": remaining <= 0
-    }
-
-
-def increment_usage(password: str) -> int:
-    """Increment usage count for a user. Returns new remaining count."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        "UPDATE users SET usage_count = usage_count + 1 WHERE password = ?",
-        (password,)
-    )
-
-    cursor.execute("SELECT usage_count FROM users WHERE password = ?", (password,))
-    row = cursor.fetchone()
-
-    conn.commit()
-    conn.close()
-
-    return MAX_ANALYSES_PER_USER - row[0] if row else 0
-
-
-def get_all_users() -> list:
-    """Get all users (for admin)."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT password, email, created_at, usage_count
-        FROM users
-        ORDER BY created_at DESC
-    """)
-    rows = cursor.fetchall()
-    conn.close()
-
-    return [
-        {
-            "password": row[0],
-            "email": row[1],
-            "created_at": row[2],
-            "usage_count": row[3],
-            "remaining_analyses": MAX_ANALYSES_PER_USER - row[3]
-        }
-        for row in rows
-    ]
-
-
-def get_daily_stats() -> dict:
-    """Get today's stats."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    today = date.today().isoformat()
-    cursor.execute("SELECT users_created FROM daily_stats WHERE date = ?", (today,))
-    row = cursor.fetchone()
-
-    conn.close()
-
-    users_today = row[0] if row else 0
-    return {
-        "date": today,
-        "users_created_today": users_today,
-        "remaining_slots": MAX_NEW_USERS_PER_DAY - users_today
-    }
 
 # Direct AI system prompt (for comparison mode - no 3-stage pipeline)
 DIRECT_AI_SYSTEM_PROMPT = """You are a design coherence analyst. A student has submitted a design concept.
@@ -312,14 +113,24 @@ tokenizer = None
 client = None
 
 
+# =============================================================================
+# Lifespan
+# =============================================================================
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load model on startup, cleanup on shutdown."""
     global model, tokenizer, client
 
-    # Initialise user database
-    print("Initialising user database...")
-    init_database()
+    # Validate configuration
+    print_config_summary()
+    validate_config()
+
+    # Initialise database if auth is enabled
+    if ENABLE_AUTH:
+        from backend.auth import init_database
+        print("Initialising user database...")
+        init_database()
 
     print(f"Loading DeBERTa model from {MODEL_PATH}...")
 
@@ -338,7 +149,7 @@ async def lifespan(app: FastAPI):
     model.to(device)
     print(f"Model loaded on {device}")
 
-    # Initialise OpenRouter client if key provided
+    # Initialise OpenRouter client
     if OPENROUTER_API_KEY:
         client = openai.OpenAI(
             base_url="https://openrouter.ai/api/v1",
@@ -361,18 +172,30 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Coherence Diagnostic",
     description="Design concept coherence analysis using Koher architecture",
-    version="1.1.0",
+    version="2.0.0",
     lifespan=lifespan
 )
 
 # CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict this
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Conditionally include auth router
+if ENABLE_AUTH:
+    from backend.auth import router as auth_router
+    app.include_router(auth_router)
+    print("Auth module loaded")
+
+# Conditionally include admin router
+if ENABLE_AUTH:
+    from backend.admin import router as admin_router
+    app.include_router(admin_router)
+    print("Admin module loaded")
 
 
 # =============================================================================
@@ -381,7 +204,6 @@ app.add_middleware(
 
 class AnalyseRequest(BaseModel):
     concept: str = Field(..., min_length=10, max_length=2000, description="Design concept text (2-8 sentences)")
-    password: Optional[str] = Field(None, description="Demo password for protected access")
     include_diagnosis: bool = Field(True, description="Whether to include Haiku diagnosis")
 
 
@@ -402,7 +224,6 @@ class AnalyseResponse(BaseModel):
 
 class DirectAIRequest(BaseModel):
     concept: str = Field(..., min_length=10, max_length=2000, description="Design concept text (2-8 sentences)")
-    password: Optional[str] = Field(None, description="Demo password for protected access")
 
 
 class DirectAIResponse(BaseModel):
@@ -413,32 +234,43 @@ class DirectAIResponse(BaseModel):
 
 
 # =============================================================================
-# Password Verification
+# Auth Helpers (conditional)
 # =============================================================================
 
-def verify_password(password: Optional[str]) -> dict:
+def get_user_for_request(request: Request) -> Optional[dict]:
     """
-    Verify user password and check usage limits.
-    Returns user info dict or None if invalid.
-    Raises HTTPException if limit reached.
+    Get user for request if auth is enabled.
+    Returns None if auth is disabled (open access).
     """
-    user = verify_user(password)
-
-    if not user:
+    if not ENABLE_AUTH:
         return None
 
-    if user["limit_reached"]:
-        raise HTTPException(
-            status_code=403,
-            detail="Analysis limit reached. You have used all 10 analyses."
-        )
-
-    return user
+    from backend.auth import get_authenticated_user
+    return get_authenticated_user(request)
 
 
-def verify_admin(password: Optional[str]) -> bool:
-    """Check if password matches admin password."""
-    return password == ADMIN_PASSWORD
+def require_auth_if_enabled(request: Request) -> Optional[dict]:
+    """
+    Require authentication if auth is enabled.
+    Returns user dict if auth enabled, None if auth disabled.
+    """
+    if not ENABLE_AUTH:
+        return None
+
+    from backend.auth import require_auth
+    return require_auth(request)
+
+
+def increment_usage_if_enabled(user: Optional[dict]) -> Optional[int]:
+    """
+    Increment usage count if auth is enabled.
+    Returns remaining count or None if auth disabled.
+    """
+    if not ENABLE_AUTH or user is None:
+        return None
+
+    from backend.auth import increment_usage
+    return increment_usage(user["email"])
 
 
 # =============================================================================
@@ -451,7 +283,6 @@ DIMENSION_ORDER = ["CLAIM", "EVIDENCE", "SCOPE", "ASSUMPTIONS", "GAPS"]
 def run_stage1(concept: str) -> dict[str, float]:
     """
     Run DeBERTa inference on concept text.
-
     Returns confidence scores (0.0-1.0) for each dimension.
     """
     global model, tokenizer
@@ -508,7 +339,7 @@ Stage 2 evaluation:
 
 
 MAX_RETRIES = 3
-RETRY_DELAY = 2  # seconds
+RETRY_DELAY = 2
 
 
 async def stream_diagnosis(concept: str, evaluation: dict):
@@ -537,7 +368,7 @@ async def stream_diagnosis(concept: str, evaluation: dict):
                     yield f"data: {json.dumps({'text': chunk.choices[0].delta.content})}\n\n"
 
             yield "data: [DONE]\n\n"
-            return  # Success, exit function
+            return
 
         except openai.APIStatusError as e:
             if e.status_code == 529 or "overloaded" in str(e).lower():
@@ -570,6 +401,42 @@ async def get_full_diagnosis(concept: str, evaluation: dict) -> str:
                 messages=[
                     {"role": "system", "content": HAIKU_SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt}
+                ]
+            )
+            return response.choices[0].message.content
+
+        except openai.APIStatusError as e:
+            if e.status_code == 529 or "overloaded" in str(e).lower():
+                if attempt < MAX_RETRIES - 1:
+                    await asyncio.sleep(RETRY_DELAY * (attempt + 1))
+                    continue
+            return f"[Error: {str(e)}]"
+
+        except Exception as e:
+            return f"[Error: {str(e)}]"
+
+    return "[Error: Max retries exceeded]"
+
+
+# =============================================================================
+# Direct AI (for comparison)
+# =============================================================================
+
+async def get_direct_ai_response(concept: str) -> str:
+    """Get direct AI analysis without 3-stage pipeline."""
+    global client
+
+    if not client:
+        return "[Direct AI unavailable - API key not configured]"
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            response = client.chat.completions.create(
+                model="anthropic/claude-haiku-4.5",
+                max_tokens=800,
+                messages=[
+                    {"role": "system", "content": DIRECT_AI_SYSTEM_PROMPT},
+                    {"role": "user", "content": f"Design concept:\n\n{concept}"}
                 ]
             )
             return response.choices[0].message.content
@@ -644,7 +511,7 @@ def format_score(dimension: str, confidence: float, severity: str) -> ScoreRespo
 
 
 # =============================================================================
-# Endpoints
+# API Endpoints
 # =============================================================================
 
 @app.get("/health")
@@ -653,21 +520,25 @@ async def health_check():
     return {
         "status": "healthy",
         "model_loaded": model is not None,
-        "haiku_available": client is not None
+        "haiku_available": client is not None,
+        "auth_enabled": ENABLE_AUTH,
+        "admin_enabled": ENABLE_AUTH
     }
 
 
 @app.post("/analyse", response_model=AnalyseResponse)
-async def analyse_concept(request: AnalyseRequest):
+async def analyse_concept(request: AnalyseRequest, req: Request):
     """
     Analyse a design concept.
-
     Returns scores, evaluation, and optional diagnosis.
     """
-    # Verify password and check limits
-    user = verify_password(request.password)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid password")
+    user = require_auth_if_enabled(req)
+
+    if user and user.get("limit_reached"):
+        raise HTTPException(
+            status_code=403,
+            detail="Analysis limit reached. You have used all your analyses."
+        )
 
     # Stage 1: DeBERTa inference
     confidence_scores = run_stage1(request.concept)
@@ -686,8 +557,8 @@ async def analyse_concept(request: AnalyseRequest):
     if request.include_diagnosis:
         diagnosis = await get_full_diagnosis(request.concept, evaluation)
 
-    # Increment usage and get remaining count
-    remaining = increment_usage(request.password)
+    # Increment usage if auth enabled
+    remaining = increment_usage_if_enabled(user)
 
     return AnalyseResponse(
         concept=request.concept,
@@ -699,16 +570,18 @@ async def analyse_concept(request: AnalyseRequest):
 
 
 @app.post("/analyse/stream")
-async def analyse_concept_stream(request: AnalyseRequest):
+async def analyse_concept_stream(request: AnalyseRequest, req: Request):
     """
     Analyse a design concept with streaming diagnosis.
-
     Returns scores immediately, then streams diagnosis via SSE.
     """
-    # Verify password and check limits
-    user = verify_password(request.password)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid password")
+    user = require_auth_if_enabled(req)
+
+    if user and user.get("limit_reached"):
+        raise HTTPException(
+            status_code=403,
+            detail="Analysis limit reached. You have used all your analyses."
+        )
 
     # Stage 1: DeBERTa inference
     confidence_scores = run_stage1(request.concept)
@@ -722,8 +595,8 @@ async def analyse_concept_stream(request: AnalyseRequest):
         for dim in DIMENSION_ORDER
     ]
 
-    # Increment usage and get remaining count
-    remaining = increment_usage(request.password)
+    # Increment usage if auth enabled
+    remaining = increment_usage_if_enabled(user)
 
     # Build initial response with scores
     initial_data = {
@@ -734,10 +607,7 @@ async def analyse_concept_stream(request: AnalyseRequest):
     }
 
     async def generate():
-        # First, send scores
         yield f"data: {json.dumps({'type': 'scores', 'data': initial_data})}\n\n"
-
-        # Then stream diagnosis
         async for chunk in stream_diagnosis(request.concept, evaluation):
             yield chunk
 
@@ -751,83 +621,66 @@ async def analyse_concept_stream(request: AnalyseRequest):
     )
 
 
-@app.get("/api")
-async def api_info():
-    """API info endpoint."""
-    return {
-        "name": "Coherence Diagnostic API",
-        "version": "1.0.0",
-        "architecture": "Koher (AI handles language, Code handles judgment)",
-        "endpoints": {
-            "POST /analyse": "Analyse concept (full response)",
-            "POST /analyse/stream": "Analyse concept (streaming diagnosis)",
-            "POST /analyse/direct": "Direct AI analysis (no pipeline)",
-            "GET /samples": "Get sample design concepts",
-            "GET /health": "Health check"
-        }
-    }
-
-
-# =============================================================================
-# Direct AI Endpoint (for comparison)
-# =============================================================================
-
-async def get_direct_ai_response(concept: str) -> str:
-    """Get direct AI analysis without 3-stage pipeline."""
-    global client
-
-    if not client:
-        return "[Direct AI unavailable - API key not configured]"
-
-    for attempt in range(MAX_RETRIES):
-        try:
-            response = client.chat.completions.create(
-                model="anthropic/claude-haiku-4.5",
-                max_tokens=800,
-                messages=[
-                    {"role": "system", "content": DIRECT_AI_SYSTEM_PROMPT},
-                    {"role": "user", "content": f"Design concept:\n\n{concept}"}
-                ]
-            )
-            return response.choices[0].message.content
-
-        except openai.APIStatusError as e:
-            if e.status_code == 529 or "overloaded" in str(e).lower():
-                if attempt < MAX_RETRIES - 1:
-                    await asyncio.sleep(RETRY_DELAY * (attempt + 1))
-                    continue
-            return f"[Error: {str(e)}]"
-
-        except Exception as e:
-            return f"[Error: {str(e)}]"
-
-    return "[Error: Max retries exceeded]"
-
-
 @app.post("/analyse/direct", response_model=DirectAIResponse)
-async def analyse_direct(request: DirectAIRequest):
+async def analyse_direct(request: DirectAIRequest, req: Request):
     """
     Analyse a design concept using direct AI (no 3-stage pipeline).
-
-    This endpoint sends the concept directly to Claude for evaluation,
-    bypassing the DeBERTa qualification and deterministic rules.
     Used for comparison with the Koher architecture.
     """
-    # Verify password and check limits
-    user = verify_password(request.password)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid password")
+    user = require_auth_if_enabled(req)
 
-    # Direct AI analysis (no usage increment — counted by /analyse endpoint in comparison mode)
+    if user and user.get("limit_reached"):
+        raise HTTPException(
+            status_code=403,
+            detail="Analysis limit reached. You have used all your analyses."
+        )
+
     response = await get_direct_ai_response(request.concept)
-
-    remaining = user["remaining_analyses"]
+    remaining = user["remaining_analyses"] if user else None
 
     return DirectAIResponse(
         concept=request.concept,
         response=response,
         remaining_analyses=remaining
     )
+
+
+@app.get("/api")
+async def api_info():
+    """API info endpoint."""
+    endpoints = {
+        "POST /analyse": "Analyse concept (full response)",
+        "POST /analyse/stream": "Analyse concept (streaming diagnosis)",
+        "POST /analyse/direct": "Direct AI analysis (no pipeline)",
+        "GET /samples": "Get sample design concepts",
+        "GET /health": "Health check",
+    }
+
+    if ENABLE_AUTH:
+        endpoints.update({
+            "POST /auth/register": "Register with email",
+            "GET /auth/verify/{token}": "Verify email",
+            "GET /auth/status": "Check auth status",
+            "GET /auth/logout": "Logout"
+        })
+
+    if ENABLE_AUTH:
+        endpoints.update({
+            "GET /admin": "Admin panel",
+            "POST /admin/login": "Admin login",
+            "GET /admin/users": "List users",
+            "GET /admin/waitlist": "List waitlist",
+            "GET /admin/stats": "Usage statistics"
+        })
+
+    return {
+        "name": "Coherence Diagnostic API",
+        "version": "2.0.0",
+        "architecture": "Koher (AI handles language, Code handles judgment)",
+        "auth_enabled": ENABLE_AUTH,
+        "admin_enabled": ENABLE_AUTH,
+        "endpoints": endpoints
+    }
 
 
 # =============================================================================
@@ -852,13 +705,11 @@ SAMPLE_CONCEPTS = {
     ]
 }
 
-import random
 
 @app.get("/samples")
 async def get_sample_concepts():
     """
     Get sample design concepts for testing.
-
     Returns one random concept from each category (strong, weak, middle).
     """
     return {
@@ -866,123 +717,6 @@ async def get_sample_concepts():
         "weak": random.choice(SAMPLE_CONCEPTS["weak"]),
         "middle": random.choice(SAMPLE_CONCEPTS["middle"])
     }
-
-
-# =============================================================================
-# Admin Endpoints
-# =============================================================================
-
-class AdminLoginRequest(BaseModel):
-    password: str = Field(..., description="Admin password")
-
-
-class CreateUserRequest(BaseModel):
-    email: Optional[str] = Field(None, description="Optional email for the new user")
-    admin_password: str = Field(..., description="Admin password for authentication")
-
-
-class UserInfo(BaseModel):
-    password: str
-    email: Optional[str]
-    created_at: str
-    usage_count: int
-    remaining_analyses: int
-
-
-class UserStatusRequest(BaseModel):
-    password: str = Field(..., description="User password")
-
-
-@app.post("/user/status")
-async def get_user_status(request: UserStatusRequest):
-    """
-    Get user status including remaining analyses.
-
-    Returns user info without consuming an analysis.
-    """
-    user = verify_user(request.password)
-
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid password")
-
-    return {
-        "valid": True,
-        "usage_count": user["usage_count"],
-        "remaining_analyses": user["remaining_analyses"],
-        "limit_reached": user["limit_reached"]
-    }
-
-
-@app.post("/admin/login")
-async def admin_login(request: AdminLoginRequest):
-    """Verify admin password."""
-    if not verify_admin(request.password):
-        raise HTTPException(status_code=401, detail="Invalid admin password")
-    return {"success": True, "message": "Admin authenticated"}
-
-
-@app.get("/admin/users")
-async def list_users(admin_password: str):
-    """List all users (admin only)."""
-    if not verify_admin(admin_password):
-        raise HTTPException(status_code=401, detail="Invalid admin password")
-
-    users = get_all_users()
-    return {"users": users, "total": len(users)}
-
-
-@app.post("/admin/create-user")
-async def create_new_user(request: CreateUserRequest):
-    """Create a new user (admin only)."""
-    if not verify_admin(request.admin_password):
-        raise HTTPException(status_code=401, detail="Invalid admin password")
-
-    try:
-        user = create_user(request.email)
-        return {
-            "success": True,
-            "user": user,
-            "message": f"User created with password: {user['password']}"
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/admin/stats")
-async def admin_stats(admin_password: str):
-    """Get usage statistics (admin only)."""
-    if not verify_admin(admin_password):
-        raise HTTPException(status_code=401, detail="Invalid admin password")
-
-    stats = get_daily_stats()
-    users = get_all_users()
-
-    total_usage = sum(u["usage_count"] for u in users)
-    active_users = sum(1 for u in users if u["usage_count"] > 0)
-
-    return {
-        "daily": stats,
-        "totals": {
-            "total_users": len(users),
-            "active_users": active_users,
-            "total_analyses": total_usage,
-            "max_analyses_per_user": MAX_ANALYSES_PER_USER,
-            "max_new_users_per_day": MAX_NEW_USERS_PER_DAY
-        }
-    }
-
-
-ADMIN_PAGE_PATH = Path(__file__).parent.parent / "frontend" / "admin.html"
-
-
-@app.get("/admin", include_in_schema=False)
-async def serve_admin():
-    """Serve the admin page."""
-    if ADMIN_PAGE_PATH.exists():
-        return FileResponse(ADMIN_PAGE_PATH)
-    return HTMLResponse(content="<h1>Admin page not found</h1>", status_code=404)
 
 
 # =============================================================================
@@ -995,7 +729,15 @@ FRONTEND_PATH = Path(__file__).parent.parent / "frontend"
 @app.get("/", include_in_schema=False)
 async def serve_frontend():
     """Serve the frontend index.html."""
-    index_path = FRONTEND_PATH / "index.html"
+    # Serve different frontend based on auth mode
+    if ENABLE_AUTH:
+        index_path = FRONTEND_PATH / "index.html"
+    else:
+        index_path = FRONTEND_PATH / "index-open.html"
+        # Fall back to regular index if open version doesn't exist
+        if not index_path.exists():
+            index_path = FRONTEND_PATH / "index.html"
+
     if index_path.exists():
         return FileResponse(index_path)
     return {"error": "Frontend not found"}
