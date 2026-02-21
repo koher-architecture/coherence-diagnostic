@@ -729,15 +729,7 @@ FRONTEND_PATH = Path(__file__).parent.parent / "frontend"
 @app.get("/", include_in_schema=False)
 async def serve_frontend():
     """Serve the frontend index.html."""
-    # Serve different frontend based on auth mode
-    if ENABLE_AUTH:
-        index_path = FRONTEND_PATH / "index.html"
-    else:
-        index_path = FRONTEND_PATH / "index-open.html"
-        # Fall back to regular index if open version doesn't exist
-        if not index_path.exists():
-            index_path = FRONTEND_PATH / "index.html"
-
+    index_path = FRONTEND_PATH / "index.html"
     if index_path.exists():
         return FileResponse(index_path)
     return {"error": "Frontend not found"}
